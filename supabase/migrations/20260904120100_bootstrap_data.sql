@@ -12,17 +12,17 @@
 -- As chaves espelham exatamente o tipo `FeeConfig` de packages/core, que é
 -- quem calcula tanto o preview da boleta quanto a cobrança de verdade.
 --
---   tradingCostBps  custo por operação em basis points (3.25 = 0,0325%)
---   tradingCostMin  piso do custo em R$
+--   brokerageBps    corretagem em basis points (5 = 0,05%)
+--   brokerageMin    piso da corretagem em R$
 --   slippageBps     deslize sempre contra o usuário (10 = 0,10%)
 --   equityTaxRate   IR sobre lucro na venda de ação/FII
 --   fiTaxRate       IR sobre rendimento no resgate de renda fixa
 --
--- 0,0325% é o custo real da B3 (emolumentos + taxa de liquidação), e não
--- corretagem: corretora hoje cobra R$ 0 em ação. O campo se chama
--- `tradingCost` e não `brokerage` justamente por isso — quando o modelo
--- realista entrar, corretagem passa a ser uma linha separada e este campo
--- continua significando a mesma coisa.
+-- ATENÇÃO: esta linha foi SUPERSEDIDA por 20260904140000_fees_trading_cost,
+-- que troca corretagem de 0,05% pelo custo real da B3 de 0,0325% e renomeia
+-- o campo para tradingCost. O arquivo continua aqui, inalterado, porque
+-- descreve o que de fato rodou no banco — editar migration já aplicada faz
+-- `db reset` divergir de produção sem ninguém perceber.
 --
 -- O slippage não é enfeite: a cotação da brapi chega com ~15 min de atraso,
 -- e sem ele o usuário compraria de graça a notícia que já saiu. É o preço da
@@ -31,8 +31,8 @@ insert into public.platform_settings (key, value, effective_from)
 values (
   'fees',
   jsonb_build_object(
-    'tradingCostBps', 3.25,
-    'tradingCostMin', 0,
+    'brokerageBps', 5,
+    'brokerageMin', 0,
     'slippageBps', 10,
     'equityTaxRate', 0.15,
     'fiTaxRate', 0.175
