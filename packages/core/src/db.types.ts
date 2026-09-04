@@ -612,6 +612,7 @@ export type Database = {
       }
     }
     Functions: {
+      admin_overview: { Args: never; Returns: Json }
       apply_fixed_income_tx: {
         Args: { p_principal: number; p_product_id: string; p_user_id: string }
         Returns: {

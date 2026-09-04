@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR" class="dark">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,6 +10,24 @@
     />
     <meta name="theme-color" content="#0a0a0a" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script>
+      // Aplica o tema ANTES do primeiro paint. Sem isto, quem escolheu tema
+      // claro vê um flash escuro em cada carregamento, porque o React só
+      // monta depois do CSS. O try/catch cobre janela privada, onde o próprio
+      // acesso ao localStorage lança.
+      (function () {
+        try {
+          var t = localStorage.getItem('m8invest.theme') || 'system';
+          var dark =
+            t === 'dark' ||
+            (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', dark);
+          if (t !== 'system') document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

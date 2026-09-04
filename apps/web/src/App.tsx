@@ -1,8 +1,9 @@
 import { Loader2 } from 'lucide-react';
 import { Suspense, lazy } from 'react';
-import { Navigate, Route, Routes } from 'react-router';
+import { Route, Routes } from 'react-router';
 
 import { HealthPage } from '@/routes/HealthPage';
+import { LandingPage } from '@/routes/LandingPage';
 import { LoginPage } from '@/routes/LoginPage';
 import { NotFoundPage } from '@/routes/NotFoundPage';
 import { RequireAuth } from '@/routes/RequireAuth';
@@ -27,6 +28,12 @@ const FixedIncomePage = lazy(() =>
 const RankingPage = lazy(() =>
   import('@/routes/RankingPage').then((module) => ({ default: module.RankingPage })),
 );
+const AdminPage = lazy(() =>
+  import('@/routes/AdminPage').then((module) => ({ default: module.AdminPage })),
+);
+const TermsPage = lazy(() =>
+  import('@/routes/TermsPage').then((module) => ({ default: module.TermsPage })),
+);
 
 function RouteFallback() {
   return (
@@ -39,7 +46,7 @@ function RouteFallback() {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/app" replace />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
 
       <Route
@@ -95,6 +102,25 @@ export default function App() {
         }
       />
 
+      <Route
+        path="/app/admin"
+        element={
+          <RequireAuth>
+            <Suspense fallback={<RouteFallback />}>
+              <AdminPage />
+            </Suspense>
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/termos"
+        element={
+          <Suspense fallback={<RouteFallback />}>
+            <TermsPage />
+          </Suspense>
+        }
+      />
       <Route path="/diagnostico" element={<HealthPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

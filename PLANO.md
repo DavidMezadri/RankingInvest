@@ -469,7 +469,7 @@ Tipos do banco gerados por `supabase gen types typescript --linked` para
 | ~~**4. Fechamento diário**~~ ✅    | Edge Function `close-day` em pg_cron, `portfolio_snapshots`, curva de patrimônio e variação do dia                                                                                             | feito    |
 | ~~**5. Renda fixa**~~ ✅           | `core/fixed-income.ts` com 20 testes, catálogo de 8 produtos, aplicação e resgate transacionais, acruamento por dia útil no `close-day`, tela com simulador de projeção                        | feito    |
 | ~~**6. Ranking e temporadas**~~ ✅ | View `leaderboard` apurada no fechamento, papel de admin, RPCs `open_season`/`close_season` com reset de carteiras, tela de ranking com editor de nome                                         | feito    |
-| **7. Admin e polimento**           | Painel admin, dark mode, mobile, empty states, mensagens de erro, disclaimer/termos                                                                                                            | 2–3 dias |
+| ~~**7. Admin e polimento**~~ ✅    | Painel admin (temporadas, catálogo, saúde dos jobs), landing pública, termos e privacidade, tema claro/escuro/sistema, navegação responsiva                                                    | feito    |
 | **8. Hardening**                   | Rate limit, testes E2E do fluxo de ordem, logs e alerta de job falho, backup de schema, LGPD                                                                                                   | 1–2 dias |
 
 **Total: ~15–22 dias de trabalho focado.** Fases 0–4 já são um produto usável.
