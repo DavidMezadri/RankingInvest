@@ -1,10 +1,9 @@
 import { formatBRL, formatDateTime, formatPercent, type Enums } from '@m8invest/core';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, LogOut } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
-import { Logo } from '@/components/Logo';
+import { AppShell } from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/features/auth/useAuth';
 import { fetchDashboard } from '@/features/portfolio/queries';
 import { cn } from '@/lib/utils';
 
@@ -48,8 +47,6 @@ function Metric({
 }
 
 export function DashboardPage() {
-  const { user, signOut } = useAuth();
-
   const dashboard = useQuery({
     queryKey: ['dashboard'],
     queryFn: fetchDashboard,
@@ -69,143 +66,114 @@ export function DashboardPage() {
   const tone = returnFraction > 0 ? 'gain' : returnFraction < 0 ? 'loss' : undefined;
 
   return (
-    <div className="min-h-dvh bg-background text-foreground">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-          <Logo />
-          <div className="flex items-center gap-3">
-            <span className="hidden text-sm text-muted-foreground sm:inline">{user?.email}</span>
-            <Button variant="ghost" size="sm" onClick={() => void signOut()}>
-              <LogOut aria-hidden />
-              Sair
-            </Button>
-          </div>
+    <AppShell>
+      {dashboard.isPending ? (
+        <div className="grid place-items-center py-20">
+          <Loader2 className="size-5 animate-spin text-muted-foreground" aria-label="Carregando" />
         </div>
-      </header>
+      ) : dashboard.isError ? (
+        <div className="rounded-lg border border-loss/40 bg-loss-muted p-4">
+          <p className="text-sm font-medium">Não foi possível carregar a carteira</p>
+          <p className="mt-1 text-sm text-muted-foreground">{dashboard.error.message}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={() => void dashboard.refetch()}
+          >
+            Tentar de novo
+          </Button>
+        </div>
+      ) : !season ? (
+        <div className="rounded-lg border border-border bg-card p-6">
+          <h1 className="font-semibold">Nenhuma temporada aberta</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            As carteiras são criadas por temporada. Assim que uma for aberta, a sua aparece aqui com
+            o saldo inicial creditado.
+          </p>
+        </div>
+      ) : !portfolio ? (
+        <div className="rounded-lg border border-border bg-card p-6">
+          <h1 className="font-semibold">Você ainda não tem carteira nesta temporada</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            A carteira é criada no primeiro cadastro. Se a sua conta existia antes da {season.name}{' '}
+            começar, ela é criada quando a temporada for reaberta.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="mb-6">
+            <h1 className="text-2xl font-semibold tracking-tight">Sua carteira</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {season.name} · iniciada com {formatBRL(initialCash)}
+            </p>
+          </div>
 
-      <main className="mx-auto max-w-4xl px-6 py-8">
-        {dashboard.isPending ? (
-          <div className="grid place-items-center py-20">
-            <Loader2
-              className="size-5 animate-spin text-muted-foreground"
-              aria-label="Carregando"
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Metric
+              label="Patrimônio"
+              value={formatBRL(totalValue)}
+              hint={`${formatPercent(returnFraction)} desde o início`}
+              {...(tone ? { tone } : {})}
+            />
+            <Metric
+              label="Caixa"
+              value={formatBRL(portfolio.cash_balance)}
+              hint="Disponível para investir"
+            />
+            <Metric label="Em ativos" value={formatBRL(equityValue)} hint="Ações e FIIs (Fase 3)" />
+            <Metric
+              label="Renda fixa"
+              value={formatBRL(fixedIncomeValue)}
+              hint="CDB e Tesouro (Fase 5)"
             />
           </div>
-        ) : dashboard.isError ? (
-          <div className="rounded-lg border border-loss/40 bg-loss-muted p-4">
-            <p className="text-sm font-medium">Não foi possível carregar a carteira</p>
-            <p className="mt-1 text-sm text-muted-foreground">{dashboard.error.message}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={() => void dashboard.refetch()}
-            >
-              Tentar de novo
-            </Button>
-          </div>
-        ) : !season ? (
-          <div className="rounded-lg border border-border bg-card p-6">
-            <h1 className="font-semibold">Nenhuma temporada aberta</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              As carteiras são criadas por temporada. Assim que uma for aberta, a sua aparece aqui
-              com o saldo inicial creditado.
-            </p>
-          </div>
-        ) : !portfolio ? (
-          <div className="rounded-lg border border-border bg-card p-6">
-            <h1 className="font-semibold">Você ainda não tem carteira nesta temporada</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              A carteira é criada no primeiro cadastro. Se a sua conta existia antes da{' '}
-              {season.name} começar, ela é criada quando a temporada for reaberta.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="mb-6">
-              <h1 className="text-2xl font-semibold tracking-tight">Sua carteira</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {season.name} · iniciada com {formatBRL(initialCash)}
+
+          <section className="mt-8">
+            <h2 className="mb-3 text-sm font-medium">Extrato</h2>
+            {ledger.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                Nenhum lançamento ainda.
               </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Metric
-                label="Patrimônio"
-                value={formatBRL(totalValue)}
-                hint={`${formatPercent(returnFraction)} desde o início`}
-                {...(tone ? { tone } : {})}
-              />
-              <Metric
-                label="Caixa"
-                value={formatBRL(portfolio.cash_balance)}
-                hint="Disponível para investir"
-              />
-              <Metric
-                label="Em ativos"
-                value={formatBRL(equityValue)}
-                hint="Ações e FIIs (Fase 3)"
-              />
-              <Metric
-                label="Renda fixa"
-                value={formatBRL(fixedIncomeValue)}
-                hint="CDB e Tesouro (Fase 5)"
-              />
-            </div>
-
-            <section className="mt-8">
-              <h2 className="mb-3 text-sm font-medium">Extrato</h2>
-              {ledger.length === 0 ? (
-                <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                  Nenhum lançamento ainda.
-                </p>
-              ) : (
-                <div className="overflow-x-auto rounded-lg border border-border">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50 text-muted-foreground">
-                      <tr>
-                        <th className="px-4 py-2 text-left font-medium">Quando</th>
-                        <th className="px-4 py-2 text-left font-medium">Tipo</th>
-                        <th className="px-4 py-2 text-left font-medium">Descrição</th>
-                        <th className="px-4 py-2 text-right font-medium">Valor</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ledger.map((entry) => (
-                        <tr key={entry.id} className="border-t border-border">
-                          <td className="tabular px-4 py-2 whitespace-nowrap text-muted-foreground">
-                            {formatDateTime(entry.occurred_at)}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap">
-                            {LEDGER_LABEL[entry.kind]}
-                          </td>
-                          <td className="px-4 py-2 text-muted-foreground">{entry.description}</td>
-                          <td
-                            className={cn(
-                              'tabular px-4 py-2 text-right font-medium whitespace-nowrap',
-                              entry.amount > 0 ? 'text-gain' : 'text-loss',
-                            )}
-                          >
-                            {/* O sinal explícito é o que carrega a informação —
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-medium">Quando</th>
+                      <th className="px-4 py-2 text-left font-medium">Tipo</th>
+                      <th className="px-4 py-2 text-left font-medium">Descrição</th>
+                      <th className="px-4 py-2 text-right font-medium">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ledger.map((entry) => (
+                      <tr key={entry.id} className="border-t border-border">
+                        <td className="tabular px-4 py-2 whitespace-nowrap text-muted-foreground">
+                          {formatDateTime(entry.occurred_at)}
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap">{LEDGER_LABEL[entry.kind]}</td>
+                        <td className="px-4 py-2 text-muted-foreground">{entry.description}</td>
+                        <td
+                          className={cn(
+                            'tabular px-4 py-2 text-right font-medium whitespace-nowrap',
+                            entry.amount > 0 ? 'text-gain' : 'text-loss',
+                          )}
+                        >
+                          {/* O sinal explícito é o que carrega a informação —
                                 cor sozinha exclui quem tem discromatopsia. */}
-                            {entry.amount > 0 ? '+' : '−'}
-                            {formatBRL(Math.abs(entry.amount))}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
-          </>
-        )}
-
-        <p className="mt-10 text-xs text-muted-foreground">
-          Simulação com fins educacionais. Cotações com atraso. Não constitui recomendação de
-          investimento.
-        </p>
-      </main>
-    </div>
+                          {entry.amount > 0 ? '+' : '−'}
+                          {formatBRL(Math.abs(entry.amount))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </>
+      )}
+    </AppShell>
   );
 }

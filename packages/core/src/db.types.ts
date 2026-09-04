@@ -287,12 +287,49 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_runs: {
+        Row: {
+          detail: string | null
+          finished_at: string | null
+          id: number
+          job: string
+          provider: string | null
+          started_at: string
+          status: string
+          tickers_failed: number
+          tickers_ok: number
+        }
+        Insert: {
+          detail?: string | null
+          finished_at?: string | null
+          id?: never
+          job: string
+          provider?: string | null
+          started_at?: string
+          status?: string
+          tickers_failed?: number
+          tickers_ok?: number
+        }
+        Update: {
+          detail?: string | null
+          finished_at?: string | null
+          id?: never
+          job?: string
+          provider?: string | null
+          started_at?: string
+          status?: string
+          tickers_failed?: number
+          tickers_ok?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       platform_setting: { Args: { p_key: string }; Returns: Json }
+      trigger_sync_quotes: { Args: never; Returns: number }
     }
     Enums: {
       asset_type: "STOCK" | "FII" | "UNIT" | "BDR"

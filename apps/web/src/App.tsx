@@ -8,13 +8,18 @@ import { NotFoundPage } from '@/routes/NotFoundPage';
 import { RequireAuth } from '@/routes/RequireAuth';
 
 /**
- * A área logada é carregada sob demanda. Hoje o ganho é pequeno — o peso está
- * em react, supabase-js e zod, que a tela de login também precisa. O motivo de
- * já estabelecer a fronteira aqui é a Fase 2/3: lightweight-charts e recharts
- * entram nesta subárvore, e aí quem só abre o login não paga por eles.
+ * A área logada é carregada sob demanda, e agora o split paga: o
+ * lightweight-charts vive nesta subárvore, e quem só abre o login não baixa
+ * a biblioteca de gráfico.
  */
 const DashboardPage = lazy(() =>
   import('@/routes/DashboardPage').then((module) => ({ default: module.DashboardPage })),
+);
+const MarketPage = lazy(() =>
+  import('@/routes/MarketPage').then((module) => ({ default: module.MarketPage })),
+);
+const AssetPage = lazy(() =>
+  import('@/routes/AssetPage').then((module) => ({ default: module.AssetPage })),
 );
 
 function RouteFallback() {
@@ -30,6 +35,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Navigate to="/app" replace />} />
       <Route path="/login" element={<LoginPage />} />
+
       <Route
         path="/app"
         element={
@@ -40,6 +46,27 @@ export default function App() {
           </RequireAuth>
         }
       />
+      <Route
+        path="/app/mercado"
+        element={
+          <RequireAuth>
+            <Suspense fallback={<RouteFallback />}>
+              <MarketPage />
+            </Suspense>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/app/ativo/:ticker"
+        element={
+          <RequireAuth>
+            <Suspense fallback={<RouteFallback />}>
+              <AssetPage />
+            </Suspense>
+          </RequireAuth>
+        }
+      />
+
       <Route path="/diagnostico" element={<HealthPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

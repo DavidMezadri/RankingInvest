@@ -13,6 +13,9 @@ export default tseslint.config(
       '**/coverage/**',
       'supabase/.temp/**',
       'supabase/.branches/**',
+      // Código Deno, fora de qualquer tsconfig: o lint type-aware falharia com
+      // "file not found in project". O Prettier continua formatando.
+      'supabase/functions/**',
       // Arquivo gerado pelo `supabase gen types`.
       'packages/core/src/db.types.ts',
     ],

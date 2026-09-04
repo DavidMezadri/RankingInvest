@@ -411,3 +411,10 @@ enabled = true
 # declarative_schema_path = "./schemas"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+[functions.sync-quotes]
+# Sem JWT: quem chama é o pg_cron, e a função se protege sendo idempotente —
+# se o último sync tem menos de 25 min, devolve SKIPPED sem chamada externa.
+# Exigir JWT obrigaria a guardar a service_role key no Vault só para o cron
+# poder se autenticar, o que é mais segredo circulando pela mesma proteção.
+verify_jwt = false
