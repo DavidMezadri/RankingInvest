@@ -1,4 +1,5 @@
 export * from './constants.ts';
+export * from './datetime.ts';
 export * from './money.ts';
 
 // Gerado por `npm run db:types` a partir do schema remoto. Reexportado de
