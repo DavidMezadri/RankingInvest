@@ -1,20 +1,28 @@
+import type { Database } from '@m8invest/core';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 import { envResult } from '@/lib/env';
 
-let client: SupabaseClient | null = null;
+/**
+ * Client tipado pelo schema real do banco. `npm run db:types` regera os tipos
+ * a partir do projeto remoto, então errar nome de coluna ou tipo de retorno
+ * numa query passa a ser erro de compilação em vez de bug em produção.
+ */
+export type Db = SupabaseClient<Database>;
+
+let client: Db | null = null;
 
 /**
  * Cliente único do Supabase. Criado sob demanda para que o app consiga
  * renderizar a tela de configuração quando as variáveis não estão setadas.
  */
-export function getSupabaseClient(): SupabaseClient {
+export function getSupabaseClient(): Db {
   if (!envResult.ok) {
     throw new Error('Supabase não configurado: verifique o arquivo .env.local');
   }
 
-  client ??= createClient(
+  client ??= createClient<Database>(
     envResult.env.VITE_SUPABASE_URL,
     envResult.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     {
