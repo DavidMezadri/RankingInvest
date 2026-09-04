@@ -24,6 +24,9 @@ const AssetPage = lazy(() =>
 const FixedIncomePage = lazy(() =>
   import('@/routes/FixedIncomePage').then((module) => ({ default: module.FixedIncomePage })),
 );
+const RankingPage = lazy(() =>
+  import('@/routes/RankingPage').then((module) => ({ default: module.RankingPage })),
+);
 
 function RouteFallback() {
   return (
@@ -76,6 +79,17 @@ export default function App() {
           <RequireAuth>
             <Suspense fallback={<RouteFallback />}>
               <FixedIncomePage />
+            </Suspense>
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/app/ranking"
+        element={
+          <RequireAuth>
+            <Suspense fallback={<RouteFallback />}>
+              <RankingPage />
             </Suspense>
           </RequireAuth>
         }

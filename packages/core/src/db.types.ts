@@ -466,6 +466,7 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
+          is_admin: boolean
           updated_at: string
         }
         Insert: {
@@ -473,6 +474,7 @@ export type Database = {
           created_at?: string
           display_name: string
           id: string
+          is_admin?: boolean
           updated_at?: string
         }
         Update: {
@@ -480,6 +482,7 @@ export type Database = {
           created_at?: string
           display_name?: string
           id?: string
+          is_admin?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -593,7 +596,20 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      leaderboard: {
+        Row: {
+          as_of: string | null
+          avatar_url: string | null
+          display_name: string | null
+          initial_cash: number | null
+          is_me: boolean | null
+          rank: number | null
+          return_pct: number | null
+          season_name: string | null
+          total_value: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       apply_fixed_income_tx: {
@@ -615,6 +631,24 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "fixed_income_investments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      close_season: {
+        Args: { p_season_id: string }
+        Returns: {
+          created_at: string
+          ends_at: string | null
+          id: string
+          initial_cash: number
+          is_active: boolean
+          name: string
+          starts_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "seasons"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -654,6 +688,25 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      is_admin: { Args: never; Returns: boolean }
+      open_season: {
+        Args: { p_initial_cash?: number; p_name: string }
+        Returns: {
+          created_at: string
+          ends_at: string | null
+          id: string
+          initial_cash: number
+          is_active: boolean
+          name: string
+          starts_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "seasons"
           isOneToOne: true
           isSetofReturn: false
         }

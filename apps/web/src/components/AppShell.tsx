@@ -11,6 +11,7 @@ const NAV = [
   { to: '/app', label: 'Carteira' },
   { to: '/app/mercado', label: 'Mercado' },
   { to: '/app/renda-fixa', label: 'Renda fixa' },
+  { to: '/app/ranking', label: 'Ranking' },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
