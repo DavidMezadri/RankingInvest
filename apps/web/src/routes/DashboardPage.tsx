@@ -2,6 +2,8 @@ import { formatBRL, formatDateTime, formatPercent, type Enums } from '@m8invest/
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 
+import { Link } from 'react-router';
+
 import { AppShell } from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
 import { fetchDashboard } from '@/features/portfolio/queries';
@@ -55,12 +57,14 @@ export function DashboardPage() {
   const season = dashboard.data?.season ?? null;
   const portfolio = dashboard.data?.portfolio ?? null;
   const ledger = dashboard.data?.ledger ?? [];
+  const positions = dashboard.data?.positions ?? [];
 
-  // Fase 1 tem só caixa. Ativos entram na Fase 3 e renda fixa na Fase 5, e
-  // então o patrimônio passa a somar as três parcelas.
-  const equityValue = 0;
+  // Patrimônio e valor em ativos são somados na query, com sumMoney: juntar
+  // valores já arredondados com `+` cru reintroduz o erro binário que o
+  // módulo money existe para fechar.
+  const equityValue = dashboard.data?.equityValue ?? 0;
+  const totalValue = dashboard.data?.totalValue ?? 0;
   const fixedIncomeValue = 0;
-  const totalValue = (portfolio?.cash_balance ?? 0) + equityValue + fixedIncomeValue;
   const initialCash = season?.initial_cash ?? 0;
   const returnFraction = initialCash > 0 ? totalValue / initialCash - 1 : 0;
   const tone = returnFraction > 0 ? 'gain' : returnFraction < 0 ? 'loss' : undefined;
@@ -128,6 +132,73 @@ export function DashboardPage() {
               hint="CDB e Tesouro (Fase 5)"
             />
           </div>
+
+          <section className="mt-8">
+            <h2 className="mb-3 text-sm font-medium">Posições</h2>
+            {positions.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                Nenhuma posição aberta.{' '}
+                <Link to="/app/mercado" className="text-foreground hover:underline">
+                  Ver o mercado
+                </Link>
+                .
+              </p>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-medium">Ativo</th>
+                      <th className="px-4 py-2 text-right font-medium">Qtd.</th>
+                      <th className="px-4 py-2 text-right font-medium">Preço médio</th>
+                      <th className="px-4 py-2 text-right font-medium">Cotação</th>
+                      <th className="px-4 py-2 text-right font-medium">Valor</th>
+                      <th className="px-4 py-2 text-right font-medium">Resultado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {positions.map((position) => (
+                      <tr key={position.ticker} className="border-t border-border">
+                        <td className="px-4 py-2 font-medium whitespace-nowrap">
+                          <Link to={`/app/ativo/${position.ticker}`} className="hover:underline">
+                            {position.ticker}
+                          </Link>
+                        </td>
+                        <td className="tabular px-4 py-2 text-right">{position.quantity}</td>
+                        <td className="tabular px-4 py-2 text-right whitespace-nowrap">
+                          {formatBRL(position.avgPrice)}
+                        </td>
+                        <td className="tabular px-4 py-2 text-right whitespace-nowrap">
+                          {position.price === null ? '—' : formatBRL(position.price)}
+                        </td>
+                        <td className="tabular px-4 py-2 text-right whitespace-nowrap">
+                          {formatBRL(position.marketValue)}
+                        </td>
+                        <td
+                          className={cn(
+                            'tabular px-4 py-2 text-right font-medium whitespace-nowrap',
+                            position.unrealizedPnl > 0
+                              ? 'text-gain'
+                              : position.unrealizedPnl < 0
+                                ? 'text-loss'
+                                : 'text-muted-foreground',
+                          )}
+                        >
+                          {/* Sinal explícito além da cor: cor sozinha exclui
+                              quem tem discromatopsia. */}
+                          {position.unrealizedPnl >= 0 ? '+' : '−'}
+                          {formatBRL(Math.abs(position.unrealizedPnl))}
+                          <span className="ml-1 text-xs font-normal">
+                            ({formatPercent(position.unrealizedPct)})
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
 
           <section className="mt-8">
             <h2 className="mb-3 text-sm font-medium">Extrato</h2>

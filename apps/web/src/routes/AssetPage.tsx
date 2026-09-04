@@ -5,7 +5,7 @@ import { Link, useParams } from 'react-router';
 
 import { AppShell } from '@/components/AppShell';
 import { CandleChart } from '@/components/CandleChart';
-import { Button } from '@/components/ui/button';
+import { OrderTicket } from '@/components/OrderTicket';
 import { fetchAsset } from '@/features/market/queries';
 import { cn } from '@/lib/utils';
 
@@ -136,16 +136,19 @@ export function AssetPage() {
             </dl>
           </section>
 
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-4">
-            <Button disabled>Comprar</Button>
-            <Button variant="outline" disabled>
-              Vender
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              A boleta entra na Fase 3, junto com o motor de ordens: preview de custos, taxa de
-              0,0325%, slippage e IR na venda.
+          {quote ? (
+            <OrderTicket
+              ticker={detail.asset.ticker}
+              referencePrice={quote.price}
+              quotedAt={quote.quoted_at}
+              lotSize={detail.asset.lot_size}
+            />
+          ) : (
+            <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+              Sem cotação em cache, não é possível operar. O sync roda a cada 30 minutos em horário
+              de mercado.
             </p>
-          </div>
+          )}
         </>
       )}
     </AppShell>
