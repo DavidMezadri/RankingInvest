@@ -1,0 +1,12 @@
+-- Seed do banco local (`supabase db reset`) e ponto de partida do ambiente
+-- remoto. Preenchido a partir da Fase 1.
+--
+-- O que entra aqui, por fase:
+--   Fase 1  temporada inicial ativa com R$ 20.000
+--           linha de `platform_settings` com as taxas simplificadas
+--   Fase 2  ~150 ativos curados (IBOV + FIIs líquidos)
+--           feriados ANBIMA, usados no acruamento por dia útil
+--   Fase 5  catálogo de produtos de renda fixa
+--
+-- Dados de mercado (cotações e candles) NÃO são seed: chegam pela Edge
+-- Function `sync-quotes`.

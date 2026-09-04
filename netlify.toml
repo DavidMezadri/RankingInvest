@@ -1,0 +1,44 @@
+# O site é estático: nenhuma função roda na Netlify. Toda lógica de servidor
+# vive em Edge Functions do Supabase. Isso mantém o consumo do free tier em
+# banda e build, sem tocar na cota de invocações.
+
+[build]
+  command = "npm run build"
+  publish = "apps/web/dist"
+
+[build.environment]
+  NODE_VERSION = "24"
+  # Instala as devDependencies do monorepo (necessárias para tsc e vite).
+  NPM_FLAGS = "--include=dev"
+
+# Fallback de SPA: qualquer rota renderiza o index e o React Router resolve.
+# Precisa ser a última regra e usar status 200 (não 301).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Assets do Vite têm hash no nome, então podem ser cacheados para sempre.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[context.deploy-preview]
+  command = "npm run build"
+
+[context.branch-deploy]
+  command = "npm run build"

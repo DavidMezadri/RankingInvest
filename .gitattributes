@@ -1,0 +1,19 @@
+# LF no repositório e no working tree, em qualquer sistema operacional.
+# Sem isso, um clone no Windows recebe CRLF e o `prettier --check` do CI
+# discorda do arquivo em disco — o build falha por final de linha.
+* text=auto eol=lf
+
+# Binários não passam por conversão nem aparecem em diff.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+
+# Gerados: colapsados na revisão de PR no GitHub.
+package-lock.json linguist-generated=true
+packages/core/src/db.types.ts linguist-generated=true

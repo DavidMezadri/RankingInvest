@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+.netlify
+package-lock.json
+supabase/.temp
+supabase/.branches
+packages/core/src/db.types.ts

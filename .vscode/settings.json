@@ -1,0 +1,40 @@
+{
+  "// Deno": "LSP do Deno apenas nas Edge Functions. O resto do repo é TS de browser/Node.",
+  "deno.enablePaths": ["supabase/functions"],
+  "deno.lint": true,
+
+  "// Formatação": "Prettier formata tudo, inclusive as Edge Functions — dois formatadores no mesmo repo brigam por aspas e vírgula final.",
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.useFlatConfig": true,
+
+  "// Tailwind": "Reconhece cn() e clsx() para autocomplete de classe.",
+  "tailwindCSS.experimental.classRegex": [
+    ["cn\\(([^)]*)\\)", "'([^']*)'"],
+    ["clsx\\(([^)]*)\\)", "'([^']*)'"]
+  ],
+
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "files.eol": "\n",
+  "search.exclude": {
+    "**/dist": true,
+    "**/node_modules": true,
+    "package-lock.json": true
+  }
+}

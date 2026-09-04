@@ -1,0 +1,25 @@
+node_modules/
+dist/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# Ambiente — o .env.example é a única versão versionada
+.env
+.env.local
+.env.*.local
+
+# Netlify
+.netlify/
+
+# Supabase CLI
+supabase/.temp/
+supabase/.branches/
+
+# Editores e SO
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.DS_Store
+Thumbs.db
