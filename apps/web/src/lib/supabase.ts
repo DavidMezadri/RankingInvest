@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 
 import { envResult } from '@/lib/env';
 
@@ -13,46 +14,103 @@ export function getSupabaseClient(): SupabaseClient {
     throw new Error('Supabase não configurado: verifique o arquivo .env.local');
   }
 
-  client ??= createClient(envResult.env.VITE_SUPABASE_URL, envResult.env.VITE_SUPABASE_ANON_KEY, {
-    auth: {
-      // PKCE é o fluxo correto para OAuth em SPA: sem client secret e sem
-      // token exposto na URL.
-      flowType: 'pkce',
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
+  client ??= createClient(
+    envResult.env.VITE_SUPABASE_URL,
+    envResult.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    {
+      auth: {
+        // PKCE é o fluxo correto para OAuth em SPA: sem client secret e sem
+        // token exposto na URL.
+        flowType: 'pkce',
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
     },
-  });
+  );
 
   return client;
 }
 
-export type SupabasePing = {
-  ok: boolean;
-  status: number;
-  detail: string;
+/**
+ * Resposta de `GET /auth/v1/settings`. Só os campos que usamos — o Zod
+ * descarta o resto, então um campo novo do Supabase não quebra nada.
+ */
+const authSettingsSchema = z.object({
+  external: z.object({
+    email: z.boolean(),
+    google: z.boolean(),
+    anonymous_users: z.boolean(),
+  }),
+  disable_signup: z.boolean(),
+  mailer_autoconfirm: z.boolean(),
+});
+
+export type AuthSettings = {
+  /** Cobre e-mail/senha e magic link — o Supabase trata os dois como um provedor. */
+  email: boolean;
+  google: boolean;
+  anonymous: boolean;
+  signupsEnabled: boolean;
+  /** Falso quando o usuário precisa clicar no link de confirmação antes de entrar. */
+  emailConfirmationRequired: boolean;
 };
 
+export type SupabaseHealth =
+  { ok: true; status: number; auth: AuthSettings } | { ok: false; status: number; detail: string };
+
 /**
- * Verifica URL + anon key sem depender de nenhuma tabela existir.
- * `GET /rest/v1/` devolve o schema OpenAPI quando a chave é aceita.
+ * Verifica URL e publishable key sem depender de nenhuma tabela existir.
+ *
+ * Usa `/auth/v1/settings` e não `/rest/v1/`: no sistema novo de chaves do
+ * Supabase, a raiz do REST responde 401 "Secret API key required" mesmo com
+ * uma publishable key válida. O endpoint de settings aceita a publishable,
+ * devolve 401 para chave inválida — e de brinde diz quais provedores de login
+ * estão configurados, que é exatamente o que falta conferir na Fase 1.
  */
-export async function pingSupabase(): Promise<SupabasePing> {
+export async function checkSupabaseHealth(): Promise<SupabaseHealth> {
   if (!envResult.ok) {
     return { ok: false, status: 0, detail: 'Variáveis de ambiente ausentes' };
   }
 
-  const { VITE_SUPABASE_URL: url, VITE_SUPABASE_ANON_KEY: key } = envResult.env;
+  const { VITE_SUPABASE_URL: url, VITE_SUPABASE_PUBLISHABLE_KEY: key } = envResult.env;
 
   try {
-    const response = await fetch(`${url.replace(/\/$/u, '')}/rest/v1/`, {
-      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    const response = await fetch(`${url.replace(/\/$/u, '')}/auth/v1/settings`, {
+      headers: { apikey: key },
     });
 
+    if (!response.ok) {
+      return {
+        ok: false,
+        status: response.status,
+        detail:
+          response.status === 401
+            ? 'Chave rejeitada — confira a publishable key'
+            : response.statusText || 'Resposta inesperada',
+      };
+    }
+
+    const parsed = authSettingsSchema.safeParse(await response.json());
+
+    if (!parsed.success) {
+      return {
+        ok: false,
+        status: response.status,
+        detail: 'Resposta em formato inesperado',
+      };
+    }
+
     return {
-      ok: response.ok,
+      ok: true,
       status: response.status,
-      detail: response.ok ? 'REST respondeu e aceitou a anon key' : response.statusText,
+      auth: {
+        email: parsed.data.external.email,
+        google: parsed.data.external.google,
+        anonymous: parsed.data.external.anonymous_users,
+        signupsEnabled: !parsed.data.disable_signup,
+        emailConfirmationRequired: !parsed.data.mailer_autoconfirm,
+      },
     };
   } catch (error) {
     return {

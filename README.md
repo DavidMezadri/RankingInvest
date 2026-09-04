@@ -37,7 +37,7 @@ escrita uma vez e usada tanto para o preview na boleta quanto para a cobrança.
 
 ```bash
 npm install
-cp .env.example apps/web/.env.local   # preencha VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
+cp .env.example apps/web/.env.local   # preencha VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY
 npm run dev                            # http://localhost:5173
 ```
 
@@ -76,4 +76,4 @@ Banco e funções (requerem `npx supabase link` no projeto):
 
 ## Variáveis na Netlify
 
-Apenas `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`. Nada mais.
+Apenas `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`. Nada mais.

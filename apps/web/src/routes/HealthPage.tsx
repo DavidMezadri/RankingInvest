@@ -4,7 +4,7 @@ import { TrendingUp } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { envResult } from '@/lib/env';
-import { pingSupabase } from '@/lib/supabase';
+import { checkSupabaseHealth } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 
 type Status = 'ok' | 'fail' | 'pending';
@@ -66,20 +66,31 @@ export function HealthPage() {
   // determinístico funciona no bundle, não só no Vitest.
   const roundingWorks = money(0.1 + 0.2) === 0.3 && money(1.005) === 1.01;
 
-  const ping = useQuery({
-    queryKey: ['supabase', 'ping'],
-    queryFn: pingSupabase,
+  const health = useQuery({
+    queryKey: ['supabase', 'health'],
+    queryFn: checkSupabaseHealth,
     enabled: envResult.ok,
     retry: false,
   });
 
   const supabaseStatus: Status = !envResult.ok
     ? 'fail'
-    : ping.isPending
+    : health.isPending
       ? 'pending'
-      : ping.data?.ok
+      : health.data?.ok
         ? 'ok'
         : 'fail';
+
+  const auth = health.data?.ok ? health.data.auth : null;
+
+  // O que ainda falta configurar no dashboard para a Fase 1 rodar completa.
+  const authPending = auth
+    ? [
+        !auth.email && 'provedor de e-mail desligado (Authentication → Sign In / Providers)',
+        !auth.google && 'Google OAuth não configurado (precisa de credencial no Google Cloud)',
+        !auth.signupsEnabled && 'cadastro de novos usuários desabilitado',
+      ].filter((item): item is string => typeof item === 'string')
+    : [];
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
@@ -126,7 +137,7 @@ export function HealthPage() {
                 <p>
                   Copie <code className="text-foreground">.env.example</code> para{' '}
                   <code className="text-foreground">apps/web/.env.local</code> e preencha com os
-                  dados do projeto (Settings → API):
+                  dados do projeto (Settings → API Keys):
                 </p>
                 <ul className="mt-2 list-disc space-y-0.5 pl-5">
                   {envResult.issues.map((issue) => (
@@ -134,10 +145,37 @@ export function HealthPage() {
                   ))}
                 </ul>
               </>
+            ) : auth ? (
+              <>
+                <p>
+                  Projeto respondendo e publishable key aceita. Provedores de login ativos:{' '}
+                  <span className="text-foreground">
+                    {[auth.email && 'e-mail e magic link', auth.google && 'Google']
+                      .filter(Boolean)
+                      .join(', ') || 'nenhum'}
+                  </span>
+                  .
+                </p>
+                {auth.emailConfirmationRequired ? (
+                  <p className="mt-1">
+                    Confirmação de e-mail exigida — no free tier o SMTP do Supabase entrega poucos
+                    e-mails por hora, então vale plugar Resend antes de abrir cadastro público.
+                  </p>
+                ) : null}
+                {authPending.length > 0 ? (
+                  <ul className="mt-2 list-disc space-y-0.5 pl-5">
+                    {authPending.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </>
             ) : (
               <>
-                {ping.data?.detail ?? 'Consultando /rest/v1/…'}
-                {ping.data && ping.data.status > 0 ? ` (HTTP ${String(ping.data.status)})` : null}
+                {health.data?.ok === false ? health.data.detail : 'Consultando /auth/v1/settings…'}
+                {health.data && health.data.status > 0
+                  ? ` (HTTP ${String(health.data.status)})`
+                  : null}
               </>
             )}
           </StatusRow>

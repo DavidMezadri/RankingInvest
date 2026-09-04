@@ -4,14 +4,15 @@ import { z } from 'zod';
  * Variáveis do frontend. Tudo com prefixo `VITE_` entra no bundle e é
  * público — o que protege os dados é RLS no Postgres, não segredo de chave.
  *
- * O token da brapi e a service_role key NÃO moram aqui em nenhuma hipótese:
- * são secrets de Edge Function.
+ * A publishable key (`sb_publishable_…`) é feita para isso. O token da brapi e
+ * a secret key (`sb_secret_…`, que ignora RLS) NÃO moram aqui em nenhuma
+ * hipótese: são secrets de Edge Function.
  */
 const envSchema = z.object({
   VITE_SUPABASE_URL: z.url({ error: 'VITE_SUPABASE_URL precisa ser uma URL válida' }),
-  VITE_SUPABASE_ANON_KEY: z
+  VITE_SUPABASE_PUBLISHABLE_KEY: z
     .string()
-    .min(20, { error: 'VITE_SUPABASE_ANON_KEY parece vazia ou truncada' }),
+    .min(20, { error: 'VITE_SUPABASE_PUBLISHABLE_KEY parece vazia ou truncada' }),
 });
 
 export type Env = z.infer<typeof envSchema>;

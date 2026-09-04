@@ -39,7 +39,7 @@ descoberto, indexadores reais (CDI/IPCA via API do BCB), taxas e IR realistas
 │  Netlify (estático)    │        │  Supabase                            │
 │  Vite + React + TS     │        │                                      │
 │                        │        │  Postgres + RLS                      │
-│  - anon key            │──JWT──▶│   ├─ tabelas de domínio              │
+│  - publishable key     │──JWT──▶│   ├─ tabelas de domínio              │
 │  - nunca vê brapi token│        │   ├─ RPC execute_order_tx (SECURITY   │
 │                        │        │   │   DEFINER, transacional)         │
 │  lê cotações do cache  │        │   └─ pg_cron + pg_net                │
@@ -50,7 +50,7 @@ descoberto, indexadores reais (CDI/IPCA via API do BCB), taxas e IR realistas
                                   │   ├─ close-day      (cron 18:30)     │
                                   │   └─ fixed-income   (aplicar/resgatar)│
                                   │                                      │
-                                  │  Secrets: BRAPI_TOKEN, SERVICE_ROLE  │
+                                  │  Secrets: BRAPI_TOKEN, SECRET_KEY    │
                                   └──────────────┬───────────────────────┘
                                                  │
                                           ┌──────▼───────┐
@@ -67,7 +67,10 @@ descoberto, indexadores reais (CDI/IPCA via API do BCB), taxas e IR realistas
    simulador acabava no primeiro dia.
 3. `orders`, `positions`, `ledger_entries` e `portfolios` são **read-only** via RLS.
    Toda escrita passa pela RPC.
-4. `service_role` key só em secret do Supabase, nunca no repo nem na Netlify.
+4. A secret key (`sb_secret_…`, antes `service_role`) só como secret do
+   Supabase — nunca no repo, nunca na Netlify, nunca por chat. Se circular,
+   revogue e gere outra: no formato novo isso é instantâneo e não invalida
+   mais nada do projeto.
 
 ---
 
@@ -268,8 +271,8 @@ mesmo código que cobra depois.
 
 ```ts
 export type FeeConfig = {
-  brokerageBps: number; // taxa por operação, ex: 5 = 0,05%
-  brokerageMin: number; // piso em R$, ex: 0
+  tradingCostBps: number; // custo por operação, 3.25 = 0,0325% (emolumentos B3)
+  tradingCostMin: number; // piso em R$, ex: 0
   slippageBps: number; // ex: 10 = 0,10% contra o usuário
   equityTaxRate: number; // IR sobre lucro na venda, ex: 0.15
   fiTaxRate: number; // IR sobre rendimento no resgate, ex: 0.175
@@ -289,6 +292,17 @@ export function accrueFixedIncome(input: {
   businessDays: number;
 }): number; // principal * (1 + annualRate) ** (businessDays / 252)
 ```
+
+**Valores em vigor** (linha `fees` de `platform_settings`, definida em
+`migrations/20260904120100_bootstrap_data.sql`):
+
+| Parâmetro        | Valor          | Origem                                                                                                       |
+| ---------------- | -------------- | ------------------------------------------------------------------------------------------------------------ |
+| `tradingCostBps` | 3.25 → 0,0325% | Custo real da B3: emolumentos + taxa de liquidação. Corretagem fica zerada porque é o padrão de mercado hoje |
+| `tradingCostMin` | R$ 0           | Sem piso                                                                                                     |
+| `slippageBps`    | 10 → 0,10%     | Sempre contra o usuário; compensa os ~15 min de atraso da cotação                                            |
+| `equityTaxRate`  | 15%            | Alíquota real de swing trade                                                                                 |
+| `fiTaxRate`      | 17,5%          | Meio da tabela regressiva                                                                                    |
 
 **Regras do MVP simplificado:**
 
@@ -414,7 +428,7 @@ no workspace):
   status = 200
 ```
 
-Env na Netlify: só `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
+Env na Netlify: só `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`.
 
 Imports em `packages/core` carregam a extensão `.ts` explícita
 (`allowImportingTsExtensions`). É a única forma que resolve igual no Vite, no

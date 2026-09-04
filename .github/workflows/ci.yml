@@ -39,4 +39,4 @@ jobs:
         env:
           # Valores de fachada: o build só precisa que a validação do env passe.
           VITE_SUPABASE_URL: https://placeholder.supabase.co
-          VITE_SUPABASE_ANON_KEY: placeholder-anon-key-para-build-de-ci
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_placeholder_para_build_de_ci

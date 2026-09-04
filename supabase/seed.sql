@@ -1,12 +1,17 @@
--- Seed do banco local (`supabase db reset`) e ponto de partida do ambiente
--- remoto. Preenchido a partir da Fase 1.
+-- Seed do banco local (`supabase db reset`).
 --
--- O que entra aqui, por fase:
---   Fase 1  temporada inicial ativa com R$ 20.000
---           linha de `platform_settings` com as taxas simplificadas
---   Fase 2  ~150 ativos curados (IBOV + FIIs líquidos)
---           feriados ANBIMA, usados no acruamento por dia útil
---   Fase 5  catálogo de produtos de renda fixa
+-- Dados de bootstrap que o ambiente REMOTO também precisa — temporada inicial
+-- e taxas — não moram aqui: estão em
+-- `migrations/20260904120100_bootstrap_data.sql`, porque `seed.sql` não roda
+-- em `db push`. As migrations rodam antes deste arquivo no `db reset`, então
+-- ele já começa com a Temporada 1 aberta.
 --
--- Dados de mercado (cotações e candles) NÃO são seed: chegam pela Edge
--- Function `sync-quotes`.
+-- Este arquivo é para dados de conveniência de desenvolvimento, que não devem
+-- existir em produção:
+--
+--   Fase 2  subconjunto de ativos e algumas cotações fixas, para trabalhar na
+--           tela de mercado sem depender da brapi
+--   Fase 3  usuário de teste com carteira e algumas ordens executadas
+--
+-- Dados reais de mercado nunca entram aqui — chegam pela Edge Function
+-- `sync-quotes`.
