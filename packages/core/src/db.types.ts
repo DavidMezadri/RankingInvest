@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      assets: {
+        Row: {
+          is_synced: boolean
+          is_tradable: boolean
+          lot_size: number
+          name: string
+          sector: string | null
+          ticker: string
+          type: Database["public"]["Enums"]["asset_type"]
+          updated_at: string
+        }
+        Insert: {
+          is_synced?: boolean
+          is_tradable?: boolean
+          lot_size?: number
+          name: string
+          sector?: string | null
+          ticker: string
+          type: Database["public"]["Enums"]["asset_type"]
+          updated_at?: string
+        }
+        Update: {
+          is_synced?: boolean
+          is_tradable?: boolean
+          lot_size?: number
+          name?: string
+          sector?: string | null
+          ticker?: string
+          type?: Database["public"]["Enums"]["asset_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      daily_candles: {
+        Row: {
+          close: number
+          date: string
+          high: number | null
+          low: number | null
+          open: number | null
+          ticker: string
+          volume: number | null
+        }
+        Insert: {
+          close: number
+          date: string
+          high?: number | null
+          low?: number | null
+          open?: number | null
+          ticker: string
+          volume?: number | null
+        }
+        Update: {
+          close?: number
+          date?: string
+          high?: number | null
+          low?: number | null
+          open?: number | null
+          ticker?: string
+          volume?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_candles_ticker_fkey"
+            columns: ["ticker"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["ticker"]
+          },
+        ]
+      }
       ledger_entries: {
         Row: {
           amount: number
@@ -48,6 +119,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      market_holidays: {
+        Row: {
+          date: string
+          name: string
+        }
+        Insert: {
+          date: string
+          name: string
+        }
+        Update: {
+          date?: string
+          name?: string
+        }
+        Relationships: []
       }
       platform_settings: {
         Row: {
@@ -130,6 +216,47 @@ export type Database = {
         }
         Relationships: []
       }
+      quotes: {
+        Row: {
+          change_pct: number | null
+          fetched_at: string
+          prev_close: number | null
+          price: number
+          quoted_at: string
+          source: string
+          ticker: string
+          volume: number | null
+        }
+        Insert: {
+          change_pct?: number | null
+          fetched_at?: string
+          prev_close?: number | null
+          price: number
+          quoted_at: string
+          source?: string
+          ticker: string
+          volume?: number | null
+        }
+        Update: {
+          change_pct?: number | null
+          fetched_at?: string
+          prev_close?: number | null
+          price?: number
+          quoted_at?: string
+          source?: string
+          ticker?: string
+          volume?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_ticker_fkey"
+            columns: ["ticker"]
+            isOneToOne: true
+            referencedRelation: "assets"
+            referencedColumns: ["ticker"]
+          },
+        ]
+      }
       seasons: {
         Row: {
           created_at: string
@@ -168,6 +295,7 @@ export type Database = {
       platform_setting: { Args: { p_key: string }; Returns: Json }
     }
     Enums: {
+      asset_type: "STOCK" | "FII" | "UNIT" | "BDR"
       ledger_kind:
         | "DEPOSIT"
         | "BUY"
@@ -304,6 +432,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      asset_type: ["STOCK", "FII", "UNIT", "BDR"],
       ledger_kind: [
         "DEPOSIT",
         "BUY",
