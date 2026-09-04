@@ -1,10 +1,11 @@
 import { DEFAULT_INITIAL_CASH, formatBRL } from '@m8invest/core';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Mail, TrendingUp } from 'lucide-react';
+import { Loader2, Mail } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router';
 import { z } from 'zod';
 
+import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -168,10 +169,7 @@ export function LoginPage() {
     <div className="grid min-h-dvh place-items-center bg-background px-6 py-12 text-foreground">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mb-3 flex items-center justify-center gap-2">
-            <TrendingUp className="size-5 text-gain" aria-hidden />
-            <span className="text-lg font-semibold tracking-tight">M8.Invest</span>
-          </div>
+          <Logo className="mb-4" />
           <h1 className="text-xl font-semibold tracking-tight">{copy.action}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{copy.hint}</p>
         </div>

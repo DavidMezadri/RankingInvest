@@ -1,7 +1,8 @@
 import { formatBRL, formatDateTime, formatPercent, type Enums } from '@m8invest/core';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, LogOut, TrendingUp } from 'lucide-react';
+import { Loader2, LogOut } from 'lucide-react';
 
+import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/useAuth';
 import { fetchDashboard } from '@/features/portfolio/queries';
@@ -71,10 +72,7 @@ export function DashboardPage() {
     <div className="min-h-dvh bg-background text-foreground">
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="size-5 text-gain" aria-hidden />
-            <span className="font-semibold tracking-tight">M8.Invest</span>
-          </div>
+          <Logo />
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-muted-foreground sm:inline">{user?.email}</span>
             <Button variant="ghost" size="sm" onClick={() => void signOut()}>

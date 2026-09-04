@@ -1,8 +1,8 @@
 import { DEFAULT_INITIAL_CASH, formatBRL, money } from '@m8invest/core';
 import { useQuery } from '@tanstack/react-query';
-import { TrendingUp } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { Logo } from '@/components/Logo';
 import { envResult } from '@/lib/env';
 import { checkSupabaseHealth } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
@@ -96,10 +96,7 @@ export function HealthPage() {
     <div className="min-h-dvh bg-background text-foreground">
       <div className="mx-auto max-w-2xl px-6 py-16">
         <header className="mb-10">
-          <div className="mb-3 flex items-center gap-2">
-            <TrendingUp className="size-5 text-gain" aria-hidden />
-            <span className="text-lg font-semibold tracking-tight">M8.Invest</span>
-          </div>
+          <Logo className="mb-3" />
           <h1 className="text-2xl font-semibold tracking-tight">Fase 0 — Fundação</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Esta tela existe para confirmar que a base está de pé: build, pacote de domínio,

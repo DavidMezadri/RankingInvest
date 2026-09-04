@@ -460,17 +460,17 @@ Tipos do banco gerados por `supabase gen types typescript --linked` para
 
 ## 9. Roadmap
 
-| Fase                        | Entregável                                                                                                                                 | Esforço  |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
-| ~~**0. Fundação**~~ ✅      | Monorepo npm workspaces, Vite+TS 6+Tailwind v4+shadcn, `packages/core` com aritmética monetária testada, `supabase init`, netlify.toml, CI | feito    |
-| **1. Auth e conta**         | 3 provedores de login, `profiles`, temporada ativa, criação automática de portfólio com R$ 20k + lançamento `DEPOSIT`, RLS base            | 1–2 dias |
-| **2. Dados de mercado**     | Seed de ~150 assets + feriados, Edge Function `sync-quotes`, pg_cron, tela `/app/mercado`, página do ativo com candles                     | 2–3 dias |
-| **3. Motor de ordens**      | `packages/core` com testes, RPC `execute_order_tx`, Edge Function `place-order`, boleta com preview, posições, extrato                     | 3–4 dias |
-| **4. Fechamento diário**    | Edge Function `close-day`, `portfolio_snapshots`, gráfico de evolução do patrimônio, P&L do dia                                            | 1–2 dias |
-| **5. Renda fixa**           | Catálogo, aplicar/resgatar, acruamento por dia útil no `close-day`, IR no resgate, simulador                                               | 2–3 dias |
-| **6. Ranking e temporadas** | `leaderboard_view`, `/ranking`, encerramento de temporada, arquivamento e reset                                                            | 1–2 dias |
-| **7. Admin e polimento**    | Painel admin, dark mode, mobile, empty states, mensagens de erro, disclaimer/termos                                                        | 2–3 dias |
-| **8. Hardening**            | Rate limit, testes E2E do fluxo de ordem, logs e alerta de job falho, backup de schema, LGPD                                               | 1–2 dias |
+| Fase                        | Entregável                                                                                                                                                                   | Esforço  |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| ~~**0. Fundação**~~ ✅      | Monorepo npm workspaces, Vite+TS 6+Tailwind v4+shadcn, `packages/core` com aritmética monetária testada, `supabase init`, netlify.toml, CI                                   | feito    |
+| ~~**1. Auth e conta**~~ ✅  | Migrations com RLS, trigger de perfil + carteira de R$ 20k, e-mail/senha e magic link (Google pendente de credencial no Google Cloud), guarda de rota, dashboard com extrato | feito    |
+| **2. Dados de mercado**     | Seed de ~150 assets + feriados, Edge Function `sync-quotes`, pg_cron, tela `/app/mercado`, página do ativo com candles                                                       | 2–3 dias |
+| **3. Motor de ordens**      | `packages/core` com testes, RPC `execute_order_tx`, Edge Function `place-order`, boleta com preview, posições, extrato                                                       | 3–4 dias |
+| **4. Fechamento diário**    | Edge Function `close-day`, `portfolio_snapshots`, gráfico de evolução do patrimônio, P&L do dia                                                                              | 1–2 dias |
+| **5. Renda fixa**           | Catálogo, aplicar/resgatar, acruamento por dia útil no `close-day`, IR no resgate, simulador                                                                                 | 2–3 dias |
+| **6. Ranking e temporadas** | `leaderboard_view`, `/ranking`, encerramento de temporada, arquivamento e reset                                                                                              | 1–2 dias |
+| **7. Admin e polimento**    | Painel admin, dark mode, mobile, empty states, mensagens de erro, disclaimer/termos                                                                                          | 2–3 dias |
+| **8. Hardening**            | Rate limit, testes E2E do fluxo de ordem, logs e alerta de job falho, backup de schema, LGPD                                                                                 | 1–2 dias |
 
 **Total: ~15–22 dias de trabalho focado.** Fases 0–4 já são um produto usável.
 
@@ -514,17 +514,29 @@ Estes pontos já nascem preparados pra evoluir sem refatoração grande:
 
 ---
 
-## 12. Próximo passo
+## 12. Estado atual e próximo passo
 
-Fase 0 concluída — `npm run check` e `npm run build` passando. Faltam duas ações
-que dependem de conta e por isso não podem ser feitas por aqui:
+**Fases 0 e 1 concluídas.** Projeto Supabase `hmqoxctpeyirlgghufdq` linkado,
+migrations aplicadas, login funcionando. Validado contra o banco: signup sem
+erro de trigger, `profiles` com `display_name` derivado do e-mail, carteira
+com R$ 20.000, lançamento `DEPOSIT`, e `42501 permission denied` para quem não
+tem sessão.
 
-1. Criar o projeto no Supabase (região São Paulo) e preencher
-   `apps/web/.env.local` a partir de `.env.example`.
-2. Conectar o repositório na Netlify. O `netlify.toml` já está pronto; basta
-   cadastrar as duas variáveis `VITE_*`.
+**Pendências que não bloqueiam a Fase 2:**
 
-Feito isso, a Fase 1 entrega: migration inicial (`profiles`, `seasons`,
-`portfolios`, `ledger_entries`, `platform_settings` + RLS), trigger que cria o
-perfil e a carteira de R$ 20.000 no primeiro login, os três provedores de auth e
-as telas de login e dashboard.
+- Google OAuth desligado — precisa de credencial no Google Cloud. O botão
+  aparece sozinho no login quando `/auth/v1/settings` reportar o provedor
+  ativo, sem mudança de código.
+- Confirmação de e-mail desligada para desenvolvimento. **Religar antes de
+  abrir ao público**, e nesse momento plugar Resend ou Brevo: o SMTP do free
+  tier entrega poucos e-mails por hora, e cadastros passam a falhar em
+  silêncio.
+- Netlify não conectada. O `netlify.toml` está pronto; falta cadastrar as duas
+  variáveis `VITE_*`.
+
+**Para a Fase 2 começar** é preciso um token da brapi.dev, configurado como
+secret da Edge Function (`npx supabase secrets set BRAPI_TOKEN=...`) — nunca
+como variável `VITE_*`, que iria para o bundle. Antes de escrever o job de
+sincronização, vale conferir a cota do plano free: o dimensionamento aqui
+assume ~5,6k requests/mês (15 min × ~150 tickers em lotes de 20), e se
+apertar o intervalo sobe para 30 min ou o universo diminui.
