@@ -11,20 +11,20 @@ taxas, ranking e temporadas. Hospedado 100% em free tier.
 
 ## 1. Decisões travadas
 
-| Tema              | Decisão                                                                      |
-| ----------------- | ---------------------------------------------------------------------------- |
-| Cotações          | **brapi.dev** (plano free, atraso ~15–30 min), cacheado no Postgres          |
-| Execução de ordem | **Preço atual + slippage**, execução imediata                                |
-| Escopo MVP        | **Ações e FIIs à vista** + **renda fixa**                                    |
-| Taxas / IR        | **Simplificado**: taxa % por operação + IR na venda/resgate                  |
-| Social            | **Ranking global + temporadas**                                              |
-| Frontend          | **Vite + React + TypeScript (SPA)** na Netlify                               |
-| Jobs              | **Supabase pg_cron + Edge Functions**                                        |
-| Renda fixa        | **Taxa anual fixa**, acruamento por dia útil (base 252)                      |
-| Auth              | **Google OAuth + e-mail/senha + magic link** (Supabase Auth)                 |
-| Lógica de ordem   | **Híbrido**: regra em TS na Edge Function, escrita final em RPC transacional |
-| Universo          | **~150 ativos** (IBOV + FIIs líquidos), curados                              |
-| UI                | **Tailwind + shadcn/ui**, gráficos com lightweight-charts + Recharts         |
+| Tema              | Decisão                                                                         |
+| ----------------- | ------------------------------------------------------------------------------- |
+| Cotações          | **Yahoo Finance** primário (sem cota) + **brapi** reserva, cacheado no Postgres |
+| Execução de ordem | **Preço atual + slippage**, execução imediata                                   |
+| Escopo MVP        | **Ações e FIIs à vista** + **renda fixa**                                       |
+| Taxas / IR        | **Simplificado**: taxa % por operação + IR na venda/resgate                     |
+| Social            | **Ranking global + temporadas**                                                 |
+| Frontend          | **Vite + React + TypeScript (SPA)** na Netlify                                  |
+| Jobs              | **Supabase pg_cron + Edge Functions**                                           |
+| Renda fixa        | **Taxa anual fixa**, acruamento por dia útil (base 252)                         |
+| Auth              | **Google OAuth + e-mail/senha + magic link** (Supabase Auth)                    |
+| Lógica de ordem   | **Híbrido**: regra em TS na Edge Function, escrita final em RPC transacional    |
+| Universo          | **~150 ativos** (IBOV + FIIs líquidos), curados                                 |
+| UI                | **Tailwind + shadcn/ui**, gráficos com lightweight-charts + Recharts            |
 
 **Fora do MVP (v2+):** proventos e eventos corporativos, derivativos, venda a
 descoberto, indexadores reais (CDI/IPCA via API do BCB), taxas e IR realistas
@@ -460,17 +460,17 @@ Tipos do banco gerados por `supabase gen types typescript --linked` para
 
 ## 9. Roadmap
 
-| Fase                        | Entregável                                                                                                                                                                   | Esforço  |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| ~~**0. Fundação**~~ ✅      | Monorepo npm workspaces, Vite+TS 6+Tailwind v4+shadcn, `packages/core` com aritmética monetária testada, `supabase init`, netlify.toml, CI                                   | feito    |
-| ~~**1. Auth e conta**~~ ✅  | Migrations com RLS, trigger de perfil + carteira de R$ 20k, e-mail/senha e magic link (Google pendente de credencial no Google Cloud), guarda de rota, dashboard com extrato | feito    |
-| **2. Dados de mercado**     | Seed de ~150 assets + feriados, Edge Function `sync-quotes`, pg_cron, tela `/app/mercado`, página do ativo com candles                                                       | 2–3 dias |
-| **3. Motor de ordens**      | `packages/core` com testes, RPC `execute_order_tx`, Edge Function `place-order`, boleta com preview, posições, extrato                                                       | 3–4 dias |
-| **4. Fechamento diário**    | Edge Function `close-day`, `portfolio_snapshots`, gráfico de evolução do patrimônio, P&L do dia                                                                              | 1–2 dias |
-| **5. Renda fixa**           | Catálogo, aplicar/resgatar, acruamento por dia útil no `close-day`, IR no resgate, simulador                                                                                 | 2–3 dias |
-| **6. Ranking e temporadas** | `leaderboard_view`, `/ranking`, encerramento de temporada, arquivamento e reset                                                                                              | 1–2 dias |
-| **7. Admin e polimento**    | Painel admin, dark mode, mobile, empty states, mensagens de erro, disclaimer/termos                                                                                          | 2–3 dias |
-| **8. Hardening**            | Rate limit, testes E2E do fluxo de ordem, logs e alerta de job falho, backup de schema, LGPD                                                                                 | 1–2 dias |
+| Fase                           | Entregável                                                                                                                                                                                     | Esforço  |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| ~~**0. Fundação**~~ ✅         | Monorepo npm workspaces, Vite+TS 6+Tailwind v4+shadcn, `packages/core` com aritmética monetária testada, `supabase init`, netlify.toml, CI                                                     | feito    |
+| ~~**1. Auth e conta**~~ ✅     | Migrations com RLS, trigger de perfil + carteira de R$ 20k, e-mail/senha e magic link (Google pendente de credencial no Google Cloud), guarda de rota, dashboard com extrato                   | feito    |
+| ~~**2. Dados de mercado**~~ ✅ | 151 ativos validados contra a fonte, 30 feriados, Edge Function `sync-quotes` com Yahoo primário e brapi reserva, pg_cron confirmado disparando, tela de mercado e página do ativo com candles | feito    |
+| **3. Motor de ordens**         | `packages/core` com testes, RPC `execute_order_tx`, Edge Function `place-order`, boleta com preview, posições, extrato                                                                         | 3–4 dias |
+| **4. Fechamento diário**       | Edge Function `close-day`, `portfolio_snapshots`, gráfico de evolução do patrimônio, P&L do dia                                                                                                | 1–2 dias |
+| **5. Renda fixa**              | Catálogo, aplicar/resgatar, acruamento por dia útil no `close-day`, IR no resgate, simulador                                                                                                   | 2–3 dias |
+| **6. Ranking e temporadas**    | `leaderboard_view`, `/ranking`, encerramento de temporada, arquivamento e reset                                                                                                                | 1–2 dias |
+| **7. Admin e polimento**       | Painel admin, dark mode, mobile, empty states, mensagens de erro, disclaimer/termos                                                                                                            | 2–3 dias |
+| **8. Hardening**               | Rate limit, testes E2E do fluxo de ordem, logs e alerta de job falho, backup de schema, LGPD                                                                                                   | 1–2 dias |
 
 **Total: ~15–22 dias de trabalho focado.** Fases 0–4 já são um produto usável.
 
