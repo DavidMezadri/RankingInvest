@@ -1,10 +1,11 @@
-import { formatBRL, formatDateTime, formatPercent, type Enums } from '@m8invest/core';
+import { formatBRL, formatDateTime, formatPercent, money, type Enums } from '@m8invest/core';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 
 import { Link } from 'react-router';
 
 import { AppShell } from '@/components/AppShell';
+import { PortfolioChart } from '@/components/PortfolioChart';
 import { Button } from '@/components/ui/button';
 import { fetchDashboard } from '@/features/portfolio/queries';
 import { cn } from '@/lib/utils';
@@ -64,8 +65,16 @@ export function DashboardPage() {
   // módulo money existe para fechar.
   const equityValue = dashboard.data?.equityValue ?? 0;
   const totalValue = dashboard.data?.totalValue ?? 0;
+  const equityCurve = dashboard.data?.equityCurve ?? [];
+  const previousClose = dashboard.data?.previousClose ?? null;
   const fixedIncomeValue = 0;
   const initialCash = season?.initial_cash ?? 0;
+
+  // Variação do dia só existe se houver fechamento anterior. No primeiro dia
+  // fica nula em vez de zero: zero afirmaria que o patrimônio não variou.
+  const dayChange = previousClose === null ? null : money(totalValue - previousClose);
+  const dayChangePct =
+    previousClose !== null && previousClose > 0 ? totalValue / previousClose - 1 : null;
   const returnFraction = initialCash > 0 ? totalValue / initialCash - 1 : 0;
   const tone = returnFraction > 0 ? 'gain' : returnFraction < 0 ? 'loss' : undefined;
 
@@ -117,7 +126,11 @@ export function DashboardPage() {
             <Metric
               label="Patrimônio"
               value={formatBRL(totalValue)}
-              hint={`${formatPercent(returnFraction)} desde o início`}
+              hint={
+                dayChangePct !== null && dayChange !== null
+                  ? `${formatPercent(dayChangePct)} hoje · ${formatPercent(returnFraction)} desde o início`
+                  : `${formatPercent(returnFraction)} desde o início`
+              }
               {...(tone ? { tone } : {})}
             />
             <Metric
@@ -132,6 +145,13 @@ export function DashboardPage() {
               hint="CDB e Tesouro (Fase 5)"
             />
           </div>
+
+          <section className="mt-8 rounded-lg border border-border bg-card p-4">
+            <h2 className="mb-3 text-xs font-medium text-muted-foreground">
+              Evolução do patrimônio
+            </h2>
+            <PortfolioChart points={equityCurve} />
+          </section>
 
           <section className="mt-8">
             <h2 className="mb-3 text-sm font-medium">Posições</h2>

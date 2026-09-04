@@ -460,17 +460,17 @@ Tipos do banco gerados por `supabase gen types typescript --linked` para
 
 ## 9. Roadmap
 
-| Fase                           | Entregável                                                                                                                                                                                     | Esforço  |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| ~~**0. Fundação**~~ ✅         | Monorepo npm workspaces, Vite+TS 6+Tailwind v4+shadcn, `packages/core` com aritmética monetária testada, `supabase init`, netlify.toml, CI                                                     | feito    |
-| ~~**1. Auth e conta**~~ ✅     | Migrations com RLS, trigger de perfil + carteira de R$ 20k, e-mail/senha e magic link (Google pendente de credencial no Google Cloud), guarda de rota, dashboard com extrato                   | feito    |
-| ~~**2. Dados de mercado**~~ ✅ | 151 ativos validados contra a fonte, 30 feriados, Edge Function `sync-quotes` com Yahoo primário e brapi reserva, pg_cron confirmado disparando, tela de mercado e página do ativo com candles | feito    |
-| **3. Motor de ordens**         | `packages/core` com testes, RPC `execute_order_tx`, Edge Function `place-order`, boleta com preview, posições, extrato                                                                         | 3–4 dias |
-| **4. Fechamento diário**       | Edge Function `close-day`, `portfolio_snapshots`, gráfico de evolução do patrimônio, P&L do dia                                                                                                | 1–2 dias |
-| **5. Renda fixa**              | Catálogo, aplicar/resgatar, acruamento por dia útil no `close-day`, IR no resgate, simulador                                                                                                   | 2–3 dias |
-| **6. Ranking e temporadas**    | `leaderboard_view`, `/ranking`, encerramento de temporada, arquivamento e reset                                                                                                                | 1–2 dias |
-| **7. Admin e polimento**       | Painel admin, dark mode, mobile, empty states, mensagens de erro, disclaimer/termos                                                                                                            | 2–3 dias |
-| **8. Hardening**               | Rate limit, testes E2E do fluxo de ordem, logs e alerta de job falho, backup de schema, LGPD                                                                                                   | 1–2 dias |
+| Fase                            | Entregável                                                                                                                                                                                     | Esforço  |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| ~~**0. Fundação**~~ ✅          | Monorepo npm workspaces, Vite+TS 6+Tailwind v4+shadcn, `packages/core` com aritmética monetária testada, `supabase init`, netlify.toml, CI                                                     | feito    |
+| ~~**1. Auth e conta**~~ ✅      | Migrations com RLS, trigger de perfil + carteira de R$ 20k, e-mail/senha e magic link (Google pendente de credencial no Google Cloud), guarda de rota, dashboard com extrato                   | feito    |
+| ~~**2. Dados de mercado**~~ ✅  | 151 ativos validados contra a fonte, 30 feriados, Edge Function `sync-quotes` com Yahoo primário e brapi reserva, pg_cron confirmado disparando, tela de mercado e página do ativo com candles | feito    |
+| ~~**3. Motor de ordens**~~ ✅   | `core/fees.ts` com 26 testes, RPC `execute_order_tx` transacional, Edge Function `place-order`, boleta com preview, posições com P&L. Invariantes contábeis verificadas contra o banco         | feito    |
+| ~~**4. Fechamento diário**~~ ✅ | Edge Function `close-day` em pg_cron, `portfolio_snapshots`, curva de patrimônio e variação do dia                                                                                             | feito    |
+| **5. Renda fixa**               | Catálogo, aplicar/resgatar, acruamento por dia útil no `close-day`, IR no resgate, simulador                                                                                                   | 2–3 dias |
+| **6. Ranking e temporadas**     | `leaderboard_view`, `/ranking`, encerramento de temporada, arquivamento e reset                                                                                                                | 1–2 dias |
+| **7. Admin e polimento**        | Painel admin, dark mode, mobile, empty states, mensagens de erro, disclaimer/termos                                                                                                            | 2–3 dias |
+| **8. Hardening**                | Rate limit, testes E2E do fluxo de ordem, logs e alerta de job falho, backup de schema, LGPD                                                                                                   | 1–2 dias |
 
 **Total: ~15–22 dias de trabalho focado.** Fases 0–4 já são um produto usável.
 

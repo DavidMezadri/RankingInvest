@@ -418,3 +418,9 @@ enabled = true
 # Exigir JWT obrigaria a guardar a service_role key no Vault só para o cron
 # poder se autenticar, o que é mais segredo circulando pela mesma proteção.
 verify_jwt = false
+
+[functions.close-day]
+# Mesma razão da sync-quotes: a escrita é um upsert em (portfolio_id, date),
+# então rodar duas vezes no mesmo dia produz o mesmo estado. Idempotência
+# dispensa o segredo compartilhado com o cron.
+verify_jwt = false

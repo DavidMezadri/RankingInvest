@@ -1,4 +1,4 @@
-import { money, sumMoney, type Tables } from '@m8invest/core';
+import { APP_TIMEZONE, money, sumMoney, type Tables } from '@m8invest/core';
 
 import { getSupabaseClient } from '@/lib/supabase';
 
@@ -23,6 +23,14 @@ export type Dashboard = {
   positions: HeldPosition[];
   equityValue: number;
   totalValue: number;
+  /** Curva de patrimônio, do mais antigo ao mais recente. */
+  equityCurve: { date: string; value: number }[];
+  /**
+   * Patrimônio no último fechamento ANTERIOR ao de hoje. `null` no primeiro
+   * dia — sem fechamento anterior não existe variação do dia, e mostrar zero
+   * seria afirmar que não variou.
+   */
+  previousClose: number | null;
 };
 
 /**
@@ -39,7 +47,7 @@ export type Dashboard = {
 export async function fetchDashboard(): Promise<Dashboard> {
   const supabase = getSupabaseClient();
 
-  const empty = { positions: [], equityValue: 0 };
+  const empty = { positions: [], equityValue: 0, equityCurve: [], previousClose: null };
 
   const { data: season, error: seasonError } = await supabase
     .from('seasons')
@@ -63,7 +71,7 @@ export async function fetchDashboard(): Promise<Dashboard> {
     return { season, portfolio: null, ledger: [], ...empty, totalValue: 0 };
   }
 
-  const [ledger, positions] = await Promise.all([
+  const [ledger, positions, snapshots] = await Promise.all([
     supabase
       .from('ledger_entries')
       .select('*')
@@ -74,10 +82,16 @@ export async function fetchDashboard(): Promise<Dashboard> {
       .from('positions')
       .select('ticker, quantity, avg_price')
       .eq('portfolio_id', portfolio.id),
+    supabase
+      .from('portfolio_snapshots')
+      .select('date, total_value')
+      .eq('portfolio_id', portfolio.id)
+      .order('date', { ascending: true }),
   ]);
 
   if (ledger.error) throw new Error(ledger.error.message);
   if (positions.error) throw new Error(positions.error.message);
+  if (snapshots.error) throw new Error(snapshots.error.message);
 
   const tickers = (positions.data ?? []).map((row) => row.ticker);
 
@@ -122,6 +136,28 @@ export async function fetchDashboard(): Promise<Dashboard> {
   const equityValue = sumMoney(held.map((position) => position.marketValue));
   const totalValue = sumMoney([portfolio.cash_balance, equityValue]);
 
+  const history = snapshots.data ?? [];
+
+  // A curva histórica termina no valor de AGORA, não no último fechamento:
+  // durante o dia o patrimônio já mudou, e mostrar a curva parando ontem
+  // enquanto o cartão mostra outro número seria contradizer a própria tela.
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: APP_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+
+  const equityCurve = [
+    ...history
+      .filter((row) => row.date < today)
+      .map((row) => ({ date: row.date, value: row.total_value })),
+    { date: today, value: totalValue },
+  ];
+
+  const closes = history.filter((row) => row.date < today);
+  const previousClose = closes.length > 0 ? (closes[closes.length - 1]?.total_value ?? null) : null;
+
   return {
     season,
     portfolio,
@@ -129,5 +165,7 @@ export async function fetchDashboard(): Promise<Dashboard> {
     positions: held,
     equityValue,
     totalValue,
+    equityCurve,
+    previousClose,
   };
 }

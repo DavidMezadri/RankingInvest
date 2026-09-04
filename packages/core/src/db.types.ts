@@ -232,6 +232,44 @@ export type Database = {
         }
         Relationships: []
       }
+      portfolio_snapshots: {
+        Row: {
+          cash: number
+          created_at: string
+          date: string
+          equity_value: number
+          fixed_income_value: number
+          portfolio_id: string
+          total_value: number
+        }
+        Insert: {
+          cash: number
+          created_at?: string
+          date: string
+          equity_value?: number
+          fixed_income_value?: number
+          portfolio_id: string
+          total_value: number
+        }
+        Update: {
+          cash?: number
+          created_at?: string
+          date?: string
+          equity_value?: number
+          fixed_income_value?: number
+          portfolio_id?: string
+          total_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_snapshots_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portfolios: {
         Row: {
           cash_balance: number
@@ -489,6 +527,7 @@ export type Database = {
         }
       }
       platform_setting: { Args: { p_key: string }; Returns: Json }
+      trigger_close_day: { Args: never; Returns: number }
       trigger_sync_quotes: { Args: never; Returns: number }
     }
     Enums: {
