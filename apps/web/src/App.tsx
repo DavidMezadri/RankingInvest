@@ -21,6 +21,9 @@ const MarketPage = lazy(() =>
 const AssetPage = lazy(() =>
   import('@/routes/AssetPage').then((module) => ({ default: module.AssetPage })),
 );
+const FixedIncomePage = lazy(() =>
+  import('@/routes/FixedIncomePage').then((module) => ({ default: module.FixedIncomePage })),
+);
 
 function RouteFallback() {
   return (
@@ -62,6 +65,17 @@ export default function App() {
           <RequireAuth>
             <Suspense fallback={<RouteFallback />}>
               <AssetPage />
+            </Suspense>
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/app/renda-fixa"
+        element={
+          <RequireAuth>
+            <Suspense fallback={<RouteFallback />}>
+              <FixedIncomePage />
             </Suspense>
           </RequireAuth>
         }

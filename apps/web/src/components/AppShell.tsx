@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 const NAV = [
   { to: '/app', label: 'Carteira' },
   { to: '/app/mercado', label: 'Mercado' },
+  { to: '/app/renda-fixa', label: 'Renda fixa' },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

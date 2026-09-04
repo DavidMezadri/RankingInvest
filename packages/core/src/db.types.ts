@@ -85,11 +85,111 @@ export type Database = {
           },
         ]
       }
+      fixed_income_investments: {
+        Row: {
+          accrued_value: number
+          applied_on: string
+          created_at: string
+          id: string
+          last_accrual_on: string
+          portfolio_id: string
+          principal: number
+          product_id: string
+          redeem_gross: number | null
+          redeem_net: number | null
+          redeem_tax: number | null
+          redeemed_at: string | null
+        }
+        Insert: {
+          accrued_value: number
+          applied_on: string
+          created_at?: string
+          id?: string
+          last_accrual_on: string
+          portfolio_id: string
+          principal: number
+          product_id: string
+          redeem_gross?: number | null
+          redeem_net?: number | null
+          redeem_tax?: number | null
+          redeemed_at?: string | null
+        }
+        Update: {
+          accrued_value?: number
+          applied_on?: string
+          created_at?: string
+          id?: string
+          last_accrual_on?: string
+          portfolio_id?: string
+          principal?: number
+          product_id?: string
+          redeem_gross?: number | null
+          redeem_net?: number | null
+          redeem_tax?: number | null
+          redeemed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_income_investments_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_income_investments_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_income_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fixed_income_products: {
+        Row: {
+          annual_rate: number
+          id: string
+          is_active: boolean
+          is_tax_exempt: boolean
+          issuer: string
+          kind: Database["public"]["Enums"]["fi_kind"]
+          liquidity: Database["public"]["Enums"]["fi_liquidity"]
+          maturity_date: string
+          min_investment: number
+          name: string
+        }
+        Insert: {
+          annual_rate: number
+          id?: string
+          is_active?: boolean
+          is_tax_exempt?: boolean
+          issuer: string
+          kind: Database["public"]["Enums"]["fi_kind"]
+          liquidity: Database["public"]["Enums"]["fi_liquidity"]
+          maturity_date: string
+          min_investment?: number
+          name: string
+        }
+        Update: {
+          annual_rate?: number
+          id?: string
+          is_active?: boolean
+          is_tax_exempt?: boolean
+          issuer?: string
+          kind?: Database["public"]["Enums"]["fi_kind"]
+          liquidity?: Database["public"]["Enums"]["fi_liquidity"]
+          maturity_date?: string
+          min_investment?: number
+          name?: string
+        }
+        Relationships: []
+      }
       ledger_entries: {
         Row: {
           amount: number
           description: string
           id: string
+          investment_id: string | null
           kind: Database["public"]["Enums"]["ledger_kind"]
           occurred_at: string
           order_id: string | null
@@ -99,6 +199,7 @@ export type Database = {
           amount: number
           description: string
           id?: string
+          investment_id?: string | null
           kind: Database["public"]["Enums"]["ledger_kind"]
           occurred_at?: string
           order_id?: string | null
@@ -108,12 +209,20 @@ export type Database = {
           amount?: number
           description?: string
           id?: string
+          investment_id?: string | null
           kind?: Database["public"]["Enums"]["ledger_kind"]
           occurred_at?: string
           order_id?: string | null
           portfolio_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ledger_entries_investment_id_fkey"
+            columns: ["investment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_income_investments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ledger_entries_order_id_fkey"
             columns: ["order_id"]
@@ -487,6 +596,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_fixed_income_tx: {
+        Args: { p_principal: number; p_product_id: string; p_user_id: string }
+        Returns: {
+          accrued_value: number
+          applied_on: string
+          created_at: string
+          id: string
+          last_accrual_on: string
+          portfolio_id: string
+          principal: number
+          product_id: string
+          redeem_gross: number | null
+          redeem_net: number | null
+          redeem_tax: number | null
+          redeemed_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fixed_income_investments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       execute_order_tx: {
         Args: {
           p_executed_price: number
@@ -527,11 +659,42 @@ export type Database = {
         }
       }
       platform_setting: { Args: { p_key: string }; Returns: Json }
+      redeem_fixed_income_tx: {
+        Args: {
+          p_gross: number
+          p_investment_id: string
+          p_net: number
+          p_tax: number
+          p_user_id: string
+        }
+        Returns: {
+          accrued_value: number
+          applied_on: string
+          created_at: string
+          id: string
+          last_accrual_on: string
+          portfolio_id: string
+          principal: number
+          product_id: string
+          redeem_gross: number | null
+          redeem_net: number | null
+          redeem_tax: number | null
+          redeemed_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fixed_income_investments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       trigger_close_day: { Args: never; Returns: number }
       trigger_sync_quotes: { Args: never; Returns: number }
     }
     Enums: {
       asset_type: "STOCK" | "FII" | "UNIT" | "BDR"
+      fi_kind: "CDB" | "LCI" | "LCA" | "TESOURO"
+      fi_liquidity: "DAILY" | "AT_MATURITY"
       ledger_kind:
         | "DEPOSIT"
         | "BUY"
@@ -671,6 +834,8 @@ export const Constants = {
   public: {
     Enums: {
       asset_type: ["STOCK", "FII", "UNIT", "BDR"],
+      fi_kind: ["CDB", "LCI", "LCA", "TESOURO"],
+      fi_liquidity: ["DAILY", "AT_MATURITY"],
       ledger_kind: [
         "DEPOSIT",
         "BUY",

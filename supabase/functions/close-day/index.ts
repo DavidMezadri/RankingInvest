@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
+import { accrueValue, countBusinessDays } from '../../../packages/core/src/fixed-income.ts';
 import { money, sumMoney } from '../../../packages/core/src/money.ts';
 import { readMarketClock } from '../_shared/market-calendar.ts';
 
@@ -23,6 +24,7 @@ type Outcome = {
   date: string | null;
   snapshots: number;
   backfilled: number;
+  accrued: number;
 };
 
 function json(body: unknown, status = 200): Response {
@@ -56,7 +58,14 @@ async function runCloseDay(db: SupabaseClient, force: boolean): Promise<Outcome>
     if (clock.weekday === 0 || clock.weekday === 6) {
       const detail = 'fim de semana';
       await record(db, 'SKIPPED', detail);
-      return { status: 'SKIPPED', detail, date: clock.date, snapshots: 0, backfilled: 0 };
+      return {
+        status: 'SKIPPED',
+        detail,
+        date: clock.date,
+        snapshots: 0,
+        backfilled: 0,
+        accrued: 0,
+      };
     }
 
     const { data: holiday } = await db
@@ -68,7 +77,14 @@ async function runCloseDay(db: SupabaseClient, force: boolean): Promise<Outcome>
     if (holiday) {
       const detail = `feriado: ${holiday.name}`;
       await record(db, 'SKIPPED', detail);
-      return { status: 'SKIPPED', detail, date: clock.date, snapshots: 0, backfilled: 0 };
+      return {
+        status: 'SKIPPED',
+        detail,
+        date: clock.date,
+        snapshots: 0,
+        backfilled: 0,
+        accrued: 0,
+      };
     }
   }
 
@@ -83,18 +99,54 @@ async function runCloseDay(db: SupabaseClient, force: boolean): Promise<Outcome>
   if (!season) {
     const detail = 'nenhuma temporada aberta';
     await record(db, 'SKIPPED', detail);
-    return { status: 'SKIPPED', detail, date: clock.date, snapshots: 0, backfilled: 0 };
+    return { status: 'SKIPPED', detail, date: clock.date, snapshots: 0, backfilled: 0, accrued: 0 };
   }
 
-  const [portfolios, positions, quotes] = await Promise.all([
+  const [portfolios, positions, quotes, holidayRows, investments] = await Promise.all([
     db.from('portfolios').select('id, cash_balance, created_at').eq('season_id', season.id),
     db.from('positions').select('portfolio_id, ticker, quantity, avg_price'),
     db.from('quotes').select('ticker, price'),
+    db.from('market_holidays').select('date'),
+    db
+      .from('fixed_income_investments')
+      .select('id, portfolio_id, principal, applied_on, fixed_income_products!inner(annual_rate)')
+      .is('redeemed_at', null),
   ]);
 
   if (portfolios.error) throw new Error(`portfolios: ${portfolios.error.message}`);
   if (positions.error) throw new Error(`positions: ${positions.error.message}`);
   if (quotes.error) throw new Error(`quotes: ${quotes.error.message}`);
+  if (investments.error) throw new Error(`investments: ${investments.error.message}`);
+
+  // ─── acruamento da renda fixa ────────────────────────────────────────────
+  //
+  // Atualiza `accrued_value` para o valor de hoje. Isto é para EXIBIR e para
+  // o snapshot: o resgate recalcula do zero, então uma falha aqui atrasa o
+  // número na tela mas nunca custa dinheiro ao usuário.
+  //
+  // Nenhum lançamento é criado. Rendimento acruado não é caixa até o resgate,
+  // e lançá-lo quebraria a invariante soma(ledger) == cash_balance.
+  const holidays = new Set((holidayRows.data ?? []).map((row) => row.date));
+  const fixedIncomeByPortfolio = new Map<string, number[]>();
+  let accruedCount = 0;
+
+  for (const investment of investments.data ?? []) {
+    const product = investment.fixed_income_products as unknown as { annual_rate: number };
+    const businessDays = countBusinessDays(investment.applied_on, clock.date, holidays);
+    const value = accrueValue(investment.principal, product.annual_rate, businessDays);
+
+    const bucket = fixedIncomeByPortfolio.get(investment.portfolio_id) ?? [];
+    bucket.push(value);
+    fixedIncomeByPortfolio.set(investment.portfolio_id, bucket);
+
+    const { error } = await db
+      .from('fixed_income_investments')
+      .update({ accrued_value: value, last_accrual_on: clock.date })
+      .eq('id', investment.id);
+
+    if (error) throw new Error(`accrual ${investment.id}: ${error.message}`);
+    accruedCount += 1;
+  }
 
   const priceByTicker = new Map((quotes.data ?? []).map((row) => [row.ticker, row.price]));
 
@@ -128,14 +180,15 @@ async function runCloseDay(db: SupabaseClient, force: boolean): Promise<Outcome>
 
   for (const portfolio of portfolios.data ?? []) {
     const equityValue = sumMoney(equityByPortfolio.get(portfolio.id) ?? []);
-    const totalValue = sumMoney([portfolio.cash_balance, equityValue]);
+    const fixedIncomeValue = sumMoney(fixedIncomeByPortfolio.get(portfolio.id) ?? []);
+    const totalValue = sumMoney([portfolio.cash_balance, equityValue, fixedIncomeValue]);
 
     rows.push({
       portfolio_id: portfolio.id,
       date: clock.date,
       cash: portfolio.cash_balance,
       equity_value: equityValue,
-      fixed_income_value: 0,
+      fixed_income_value: fixedIncomeValue,
       total_value: totalValue,
     });
 
@@ -169,8 +222,8 @@ async function runCloseDay(db: SupabaseClient, force: boolean): Promise<Outcome>
   }
 
   const detail = `${String(rows.length)} snapshots em ${clock.date}${
-    backfill.length > 0 ? `, ${String(backfill.length)} de abertura` : ''
-  }`;
+    accruedCount > 0 ? `, ${String(accruedCount)} aplicações acruadas` : ''
+  }${backfill.length > 0 ? `, ${String(backfill.length)} de abertura` : ''}`;
 
   await record(db, 'OK', detail, rows.length);
 
@@ -180,6 +233,7 @@ async function runCloseDay(db: SupabaseClient, force: boolean): Promise<Outcome>
     date: clock.date,
     snapshots: rows.length,
     backfilled: backfill.length,
+    accrued: accruedCount,
   };
 }
 

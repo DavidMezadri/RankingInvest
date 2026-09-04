@@ -1,4 +1,11 @@
-import { APP_TIMEZONE, money, sumMoney, type Tables } from '@m8invest/core';
+import {
+  APP_TIMEZONE,
+  accrueValue,
+  countBusinessDays,
+  money,
+  sumMoney,
+  type Tables,
+} from '@m8invest/core';
 
 import { getSupabaseClient } from '@/lib/supabase';
 
@@ -22,6 +29,7 @@ export type Dashboard = {
   ledger: Tables<'ledger_entries'>[];
   positions: HeldPosition[];
   equityValue: number;
+  fixedIncomeValue: number;
   totalValue: number;
   /** Curva de patrimônio, do mais antigo ao mais recente. */
   equityCurve: { date: string; value: number }[];
@@ -44,10 +52,25 @@ export type Dashboard = {
  * Nenhuma query filtra por usuário. A RLS já limita ao dono, e filtrar aqui
  * daria a falsa impressão de que a segurança está no cliente.
  */
+function marketToday(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: APP_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
 export async function fetchDashboard(): Promise<Dashboard> {
   const supabase = getSupabaseClient();
 
-  const empty = { positions: [], equityValue: 0, equityCurve: [], previousClose: null };
+  const empty = {
+    positions: [],
+    equityValue: 0,
+    fixedIncomeValue: 0,
+    equityCurve: [],
+    previousClose: null,
+  };
 
   const { data: season, error: seasonError } = await supabase
     .from('seasons')
@@ -71,7 +94,7 @@ export async function fetchDashboard(): Promise<Dashboard> {
     return { season, portfolio: null, ledger: [], ...empty, totalValue: 0 };
   }
 
-  const [ledger, positions, snapshots] = await Promise.all([
+  const [ledger, positions, snapshots, investments] = await Promise.all([
     supabase
       .from('ledger_entries')
       .select('*')
@@ -87,23 +110,29 @@ export async function fetchDashboard(): Promise<Dashboard> {
       .select('date, total_value')
       .eq('portfolio_id', portfolio.id)
       .order('date', { ascending: true }),
+    supabase
+      .from('fixed_income_investments')
+      .select('principal, applied_on, fixed_income_products(annual_rate)')
+      .is('redeemed_at', null),
   ]);
 
   if (ledger.error) throw new Error(ledger.error.message);
   if (positions.error) throw new Error(positions.error.message);
   if (snapshots.error) throw new Error(snapshots.error.message);
+  if (investments.error) throw new Error(investments.error.message);
 
   const tickers = (positions.data ?? []).map((row) => row.ticker);
 
   // Busca preço e nome só dos ativos em carteira. Carregar os 151 para
   // valorizar 3 posições seria desperdício de banda em cada abertura de tela.
-  const [quotes, assets] = await Promise.all([
+  const [quotes, assets, holidayRows] = await Promise.all([
     tickers.length > 0
       ? supabase.from('quotes').select('ticker, price').in('ticker', tickers)
       : Promise.resolve({ data: [], error: null }),
     tickers.length > 0
       ? supabase.from('assets').select('ticker, name').in('ticker', tickers)
       : Promise.resolve({ data: [], error: null }),
+    supabase.from('market_holidays').select('date'),
   ]);
 
   const priceByTicker = new Map((quotes.data ?? []).map((row) => [row.ticker, row.price]));
@@ -134,19 +163,28 @@ export async function fetchDashboard(): Promise<Dashboard> {
   // sumMoney e não `+`: somar valores já arredondados com o operador cru
   // reintroduz o erro binário que o módulo money existe para fechar.
   const equityValue = sumMoney(held.map((position) => position.marketValue));
-  const totalValue = sumMoney([portfolio.cash_balance, equityValue]);
+
+  // Renda fixa recalculada até hoje com as mesmas funções do resgate, e não
+  // lida de `accrued_value`: se um fechamento falhar, aquela coluna atrasa um
+  // dia e o patrimônio na tela divergiria do que o resgate paga.
+  const holidays = new Set((holidayRows.data ?? []).map((row) => row.date));
+  const fixedIncomeValue = sumMoney(
+    (investments.data ?? []).flatMap((row) => {
+      const product = row.fixed_income_products;
+      if (!product) return [];
+      const businessDays = countBusinessDays(row.applied_on, marketToday(), holidays);
+      return [accrueValue(row.principal, product.annual_rate, businessDays)];
+    }),
+  );
+
+  const totalValue = sumMoney([portfolio.cash_balance, equityValue, fixedIncomeValue]);
 
   const history = snapshots.data ?? [];
 
   // A curva histórica termina no valor de AGORA, não no último fechamento:
   // durante o dia o patrimônio já mudou, e mostrar a curva parando ontem
   // enquanto o cartão mostra outro número seria contradizer a própria tela.
-  const today = new Intl.DateTimeFormat('en-CA', {
-    timeZone: APP_TIMEZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
+  const today = marketToday();
 
   const equityCurve = [
     ...history
@@ -164,6 +202,7 @@ export async function fetchDashboard(): Promise<Dashboard> {
     ledger: ledger.data ?? [],
     positions: held,
     equityValue,
+    fixedIncomeValue,
     totalValue,
     equityCurve,
     previousClose,

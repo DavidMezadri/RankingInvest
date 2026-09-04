@@ -67,7 +67,7 @@ export function DashboardPage() {
   const totalValue = dashboard.data?.totalValue ?? 0;
   const equityCurve = dashboard.data?.equityCurve ?? [];
   const previousClose = dashboard.data?.previousClose ?? null;
-  const fixedIncomeValue = 0;
+  const fixedIncomeValue = dashboard.data?.fixedIncomeValue ?? 0;
   const initialCash = season?.initial_cash ?? 0;
 
   // Variação do dia só existe se houver fechamento anterior. No primeiro dia
@@ -142,7 +142,7 @@ export function DashboardPage() {
             <Metric
               label="Renda fixa"
               value={formatBRL(fixedIncomeValue)}
-              hint="CDB e Tesouro (Fase 5)"
+              hint="CDB, LCI e Tesouro"
             />
           </div>
 
