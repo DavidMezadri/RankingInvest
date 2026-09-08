@@ -83,7 +83,8 @@ export function HealthPage() {
 
   const auth = health.data?.ok ? health.data.auth : null;
 
-  // O que ainda falta configurar no dashboard para a Fase 1 rodar completa.
+  // O que ainda falta configurar no dashboard do Supabase para o login rodar
+  // completo. Nada disso quebra o build, então só aparece aqui.
   const authPending = auth
     ? [
         !auth.email && 'provedor de e-mail desligado (Authentication → Sign In / Providers)',
@@ -95,12 +96,20 @@ export function HealthPage() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <div className="mx-auto max-w-2xl px-6 py-16">
+        {/* Esta tela tem dois papéis: a rota /diagnostico, aberta de propósito,
+            e o fallback de `main.tsx` quando o ambiente não valida. No segundo
+            caso ela é a ÚNICA coisa que o visitante vê, então o cabeçalho diz
+            qual dos dois é — anunciar "diagnóstico" para quem só queria entrar
+            no site esconde que existe algo a corrigir. */}
         <header className="mb-10">
           <Logo className="mb-3" />
-          <h1 className="text-2xl font-semibold tracking-tight">Fase 0 — Fundação</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {envResult.ok ? 'Diagnóstico' : 'Configuração incompleta'}
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Esta tela existe para confirmar que a base está de pé: build, pacote de domínio,
-            roteamento SPA e conexão com o Supabase. Ela sai do ar na Fase 1, quando entra o login.
+            {envResult.ok
+              ? 'Estado do build, do pacote de domínio e da conexão com o Supabase.'
+              : 'O app não subiu porque faltam as variáveis de ambiente do Supabase. O restante da base está de pé — veja abaixo o que corrigir.'}
           </p>
         </header>
 
@@ -131,16 +140,31 @@ export function HealthPage() {
           <StatusRow status={supabaseStatus} title="Supabase">
             {!envResult.ok ? (
               <>
-                <p>
-                  Copie <code className="text-foreground">.env.example</code> para{' '}
-                  <code className="text-foreground">apps/web/.env.local</code> e preencha com os
-                  dados do projeto (Settings → API Keys):
-                </p>
-                <ul className="mt-2 list-disc space-y-0.5 pl-5">
+                <ul className="list-disc space-y-0.5 pl-5">
                   {envResult.issues.map((issue) => (
                     <li key={issue}>{issue}</li>
                   ))}
                 </ul>
+
+                {/* A instrução precisa distinguir os dois ambientes. Mandar
+                    editar `.env.local` é inútil em produção, onde esse arquivo
+                    não existe: o Vite grava as variáveis DENTRO do bundle
+                    durante o build, então na Netlify o conserto é cadastrar e
+                    reconstruir — e um redeploy comum reaproveita o build
+                    anterior, o que faz a correção parecer não ter funcionado. */}
+                <p className="mt-3 font-medium text-foreground">Rodando local</p>
+                <p>
+                  Copie <code className="text-foreground">.env.example</code> para{' '}
+                  <code className="text-foreground">apps/web/.env.local</code> e preencha com os
+                  valores de Supabase → Project Settings → API Keys.
+                </p>
+
+                <p className="mt-3 font-medium text-foreground">Publicado na Netlify</p>
+                <p>
+                  Cadastre as duas em Site configuration → Environment variables e refaça o build em
+                  Deploys → Trigger deploy → <em>Clear cache and deploy site</em>. As variáveis são
+                  gravadas no bundle durante o build, por isso um redeploy comum não basta.
+                </p>
               </>
             ) : auth ? (
               <>
@@ -179,11 +203,6 @@ export function HealthPage() {
         </ul>
 
         <footer className="mt-10 space-y-2 text-xs text-muted-foreground">
-          <p>
-            Próximo: Fase 1 — Supabase Auth com Google, e-mail/senha e magic link, tabela{' '}
-            <code>profiles</code>, temporada ativa e criação automática da carteira com{' '}
-            {formatBRL(DEFAULT_INITIAL_CASH)}.
-          </p>
           <p>
             Simulação com fins educacionais. Cotações com atraso. Não constitui recomendação de
             investimento.
