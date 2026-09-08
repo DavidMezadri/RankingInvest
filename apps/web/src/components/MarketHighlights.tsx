@@ -10,41 +10,65 @@ const SIZE = 5;
 
 type Metric = 'gain' | 'loss' | 'volume';
 
+type Ranking = {
+  top: MarketRow[];
+  /** Por que a lista saiu vazia. `null` quando há resultado. */
+  reason: string | null;
+};
+
 /**
  * Ordena descartando quem não tem o dado.
  *
  * Ativo sem cotação não pode figurar em "maiores altas": ele não subiu nem
  * caiu, apenas não foi sincronizado. Tratá-lo como zero o colocaria no meio
  * do ranking como se fosse informação.
+ *
+ * Quando nada sobra, devolve o MOTIVO em vez de um vazio mudo. As causas são
+ * diferentes e levam a ações diferentes: mercado recém-aberto se resolve
+ * esperando, sync parado é problema a investigar. Um "sem dados ainda" único
+ * para as duas confunde as duas.
  */
-function rank(rows: readonly MarketRow[], metric: Metric): MarketRow[] {
+function rank(rows: readonly MarketRow[], metric: Metric): Ranking {
+  if (rows.length === 0) {
+    return { top: [], reason: 'Nenhum ativo neste filtro.' };
+  }
+
   if (metric === 'volume') {
-    return rows
+    const top = rows
       .filter((row) => row.financialVolume !== null && row.financialVolume > 0)
       .sort((a, b) => (b.financialVolume ?? 0) - (a.financialVolume ?? 0))
       .slice(0, SIZE);
+
+    if (top.length > 0) return { top, reason: null };
+
+    // Distingue "não temos a cotação" de "não houve negócio". O segundo é o
+    // estado normal nos primeiros minutos após a abertura, e em FII ilíquido
+    // dura o dia inteiro: RBRF11 fecha com preço e volume zero.
+    return {
+      top: [],
+      reason: rows.every((row) => row.price === null)
+        ? 'Cotações ainda não sincronizadas.'
+        : 'Nenhum negócio registrado até agora.',
+    };
   }
 
-  const withChange = rows.filter((row) => row.changePct !== null);
-
-  return withChange
+  const top = rows
+    .filter((row) => row.changePct !== null)
     .sort((a, b) =>
       metric === 'gain'
         ? (b.changePct ?? 0) - (a.changePct ?? 0)
         : (a.changePct ?? 0) - (b.changePct ?? 0),
     )
     .slice(0, SIZE);
+
+  return top.length > 0
+    ? { top, reason: null }
+    : { top: [], reason: 'Cotações ainda não sincronizadas.' };
 }
 
-function Card({
-  title,
-  metric,
-  rows,
-}: {
-  title: string;
-  metric: Metric;
-  rows: readonly MarketRow[];
-}) {
+function Card({ title, metric, ranking }: { title: string; metric: Metric; ranking: Ranking }) {
+  const rows = ranking.top;
+
   const Icon = metric === 'gain' ? TrendingUp : metric === 'loss' ? TrendingDown : BarChart3;
   const iconTone =
     metric === 'gain' ? 'text-gain' : metric === 'loss' ? 'text-loss' : 'text-muted-foreground';
@@ -57,7 +81,7 @@ function Card({
       </h3>
 
       {rows.length === 0 ? (
-        <p className="px-4 py-6 text-center text-sm text-muted-foreground">Sem dados ainda.</p>
+        <p className="px-4 py-6 text-center text-sm text-muted-foreground">{ranking.reason}</p>
       ) : (
         <ul>
           {rows.map((row) => (
@@ -119,9 +143,9 @@ export function MarketHighlights({ rows }: { rows: readonly MarketRow[] }) {
   return (
     <div className="mb-6">
       <div className="grid gap-3 lg:grid-cols-3">
-        <Card title="Maiores altas" metric="gain" rows={gainers} />
-        <Card title="Maiores baixas" metric="loss" rows={losers} />
-        <Card title="Mais negociados" metric="volume" rows={traded} />
+        <Card title="Maiores altas" metric="gain" ranking={gainers} />
+        <Card title="Maiores baixas" metric="loss" ranking={losers} />
+        <Card title="Mais negociados" metric="volume" ranking={traded} />
       </div>
 
       {/* O critério precisa estar escrito: "mais negociado" em número de ações

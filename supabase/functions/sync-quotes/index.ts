@@ -256,18 +256,39 @@ async function runSync(db: SupabaseClient, force: boolean): Promise<SyncOutcome>
       if (error) throw new Error(`upsert quotes: ${error.message}`);
     }
 
+    let candlesSaved = 0;
+    let candleError: string | null = null;
+
     for (let i = 0; i < candleRows.length; i += 1000) {
       const chunk = candleRows.slice(i, i + 1000);
       const { error } = await db.from('daily_candles').upsert(chunk, { onConflict: 'ticker,date' });
-      if (error) throw new Error(`upsert candles: ${error.message}`);
+
+      if (error) {
+        // Não aborta a rodada. A cotação já está gravada, e é ela que
+        // precifica ordem — o candle só alimenta gráfico. Lançar aqui marcava
+        // FAILED um sync cujo dado principal deu certo, e como `lastSync` na
+        // tela e a auto-limitação de 25 min contam apenas OK e PARTIAL, o
+        // efeito era duplo: o preço novo ficava invisível e a rodada seguinte
+        // refazia as 151 chamadas ao provider como se nada tivesse rodado.
+        candleError = error.message;
+        break;
+      }
+
+      candlesSaved += chunk.length;
     }
 
-    const status: SyncOutcome['status'] =
-      failures.length === 0 ? 'OK' : quoteRows.length === 0 ? 'FAILED' : 'PARTIAL';
+    const degraded = failures.length > 0 || candleError !== null;
+    const status: SyncOutcome['status'] = !degraded
+      ? 'OK'
+      : quoteRows.length === 0
+        ? 'FAILED'
+        : 'PARTIAL';
 
     const outcome: SyncOutcome = {
       status,
-      detail: `${String(quoteRows.length)} cotações, ${String(candleRows.length)} candles`,
+      detail:
+        `${String(quoteRows.length)} cotações, ${String(candlesSaved)} candles` +
+        (candleError === null ? '' : ` · candles falharam: ${candleError}`),
       tickersOk: quoteRows.length,
       tickersFailed: failures.length,
       bySource,

@@ -55,6 +55,23 @@ function optionalNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+/**
+ * Como `optionalNumber`, mas trata zero como AUSENTE.
+ *
+ * Para preço, zero nunca é informação: um candle com `close` de R$ 6,65 e
+ * `high` de 0 não teve máxima de zero, teve máxima não apurada. Os provedores
+ * devolvem isso em papel ilíquido e no candle do dia em formação, e o schema
+ * já encoda esse julgamento em `check (high > 0)` — foi ele que derrubou uma
+ * rodada inteira de sync quando o zero passou reto por aqui.
+ *
+ * Volume é o caso oposto e por isso continua em `optionalNumber`: zero
+ * negócio é um fato sobre o papel, não um dado faltando.
+ */
+function positiveOrNull(value: unknown): number | null {
+  const parsed = optionalNumber(value);
+  return parsed !== null && parsed > 0 ? parsed : null;
+}
+
 /** Converte epoch em segundos para a data no fuso do mercado (YYYY-MM-DD). */
 function toMarketDate(epochSeconds: number): string {
   // 'en-CA' entrega ISO (YYYY-MM-DD) já convertido para o fuso pedido, o que
@@ -139,9 +156,9 @@ export const yahooProvider: QuoteProvider = {
 
       candles.push({
         date: toMarketDate(stamp),
-        open: optionalNumber(series?.open?.[i]),
-        high: optionalNumber(series?.high?.[i]),
-        low: optionalNumber(series?.low?.[i]),
+        open: positiveOrNull(series?.open?.[i]),
+        high: positiveOrNull(series?.high?.[i]),
+        low: positiveOrNull(series?.low?.[i]),
         close: toPrice(close),
         volume: optionalNumber(series?.volume?.[i]),
       });
@@ -150,7 +167,10 @@ export const yahooProvider: QuoteProvider = {
     return {
       ticker,
       price: toPrice(price),
-      prevClose: optionalNumber(meta.chartPreviousClose ?? meta.previousClose),
+      // `check (prev_close > 0)` também existe em `quotes`, e este upsert roda
+      // ANTES do de candles: um zero aqui não derrubaria só o histórico,
+      // derrubaria a cotação de todos os 151 ativos da rodada.
+      prevClose: positiveOrNull(meta.chartPreviousClose ?? meta.previousClose),
       changePct: optionalNumber(meta.regularMarketChangePercent),
       volume: optionalNumber(meta.regularMarketVolume),
       quotedAt: new Date((quotedAtEpoch ?? Date.now() / 1000) * 1000).toISOString(),
@@ -208,9 +228,9 @@ export function createBrapiProvider(token: string): QuoteProvider {
 
         candles.push({
           date: toMarketDate(stamp),
-          open: optionalNumber(row.open),
-          high: optionalNumber(row.high),
-          low: optionalNumber(row.low),
+          open: positiveOrNull(row.open),
+          high: positiveOrNull(row.high),
+          low: positiveOrNull(row.low),
           close: toPrice(close),
           volume: optionalNumber(row.volume),
         });
@@ -224,7 +244,7 @@ export function createBrapiProvider(token: string): QuoteProvider {
       return {
         ticker,
         price: toPrice(price),
-        prevClose: optionalNumber(result.regularMarketPreviousClose),
+        prevClose: positiveOrNull(result.regularMarketPreviousClose),
         changePct: optionalNumber(result.regularMarketChangePercent),
         volume: optionalNumber(result.regularMarketVolume),
         quotedAt,
