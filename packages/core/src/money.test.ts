@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyBasisPoints,
   formatBRL,
+  formatCompactBRL,
   formatPercent,
   isSameMoney,
   money,
@@ -107,6 +108,12 @@ describe('formatação', () => {
     expect(normalizeSpaces(formatBRL(1234.5))).toBe('R$ 1.234,50');
     expect(normalizeSpaces(formatBRL(-98.7))).toBe('-R$ 98,70');
     expect(normalizeSpaces(formatBRL(20_000))).toBe('R$ 20.000,00');
+  });
+
+  it('formata valor compacto para volume financeiro', () => {
+    expect(normalizeSpaces(formatCompactBRL(373_300_000))).toBe('R$ 373,3 mi');
+    expect(normalizeSpaces(formatCompactBRL(72_000_000))).toBe('R$ 72 mi');
+    expect(normalizeSpaces(formatCompactBRL(1_500))).toBe('R$ 1,5 mil');
   });
 
   it('formata variação com sinal explícito', () => {

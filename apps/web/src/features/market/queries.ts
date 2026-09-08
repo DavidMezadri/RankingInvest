@@ -1,4 +1,4 @@
-import type { Enums, Tables } from '@m8invest/core';
+import { money, type Enums, type Tables } from '@m8invest/core';
 
 import { getSupabaseClient } from '@/lib/supabase';
 
@@ -9,6 +9,14 @@ export type MarketRow = {
   price: number | null;
   changePct: number | null;
   volume: number | null;
+  /**
+   * Volume em reais: preço × quantidade.
+   *
+   * É o que mede liquidez. Ordenar por contagem de ações colocaria papel de
+   * centavos no topo — 12 M de ações a R$ 5 giram menos dinheiro que 2 M a
+   * R$ 50.
+   */
+  financialVolume: number | null;
   quotedAt: string | null;
 };
 
@@ -55,6 +63,8 @@ export async function fetchMarket(): Promise<MarketSnapshot> {
       price: quote?.price ?? null,
       changePct: quote?.change_pct ?? null,
       volume: quote?.volume ?? null,
+      financialVolume:
+        quote?.volume != null && quote.price != null ? money(quote.volume * quote.price) : null,
       quotedAt: quote?.quoted_at ?? null,
     };
   });

@@ -91,6 +91,24 @@ export function formatBRL(value: number): string {
   return brlFormatter.format(money(value));
 }
 
+const compactBrlFormatter = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+
+/**
+ * Formata em reais de forma compacta: 373_300_000 → "R$ 373,3 mi".
+ *
+ * Para volume financeiro e patrimônio agregado, onde a grandeza importa mais
+ * que o centavo. Em saldo, preço e extrato use `formatBRL`: lá o centavo é o
+ * dado.
+ */
+export function formatCompactBRL(value: number): string {
+  return compactBrlFormatter.format(value);
+}
+
 /** Formata variação: 0.0234 → "+2,34%". Recebe fração, não percentual. */
 export function formatPercent(fraction: number): string {
   return percentFormatter.format(fraction);

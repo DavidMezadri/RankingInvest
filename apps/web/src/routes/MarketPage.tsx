@@ -1,10 +1,11 @@
-import { formatBRL, formatPercent, formatTime, type Enums } from '@m8invest/core';
+import { formatBRL, formatCompactBRL, formatPercent, formatTime, type Enums } from '@m8invest/core';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, Loader2, Search, TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 
 import { AppShell } from '@/components/AppShell';
+import { MarketHighlights } from '@/components/MarketHighlights';
 import { Input } from '@/components/ui/input';
 import { fetchMarket, type MarketRow } from '@/features/market/queries';
 import { useNow } from '@/lib/use-now';
@@ -26,8 +27,6 @@ const FILTERS: { value: 'ALL' | Enums<'asset_type'>; label: string }[] = [
 ];
 
 type SortKey = 'ticker' | 'price' | 'changePct';
-
-const compactNumber = new Intl.NumberFormat('pt-BR', { notation: 'compact' });
 
 /** Ordena nulos sempre no fim, para ativo sem cotação não encabeçar a lista. */
 function compare(a: MarketRow, b: MarketRow, key: SortKey, asc: boolean): number {
@@ -94,12 +93,18 @@ export function MarketPage() {
     staleTime: 5 * 60_000,
   });
 
+  // Os destaques respeitam o filtro de TIPO, mas não a busca: filtrar FIIs e
+  // ver as altas dos FIIs é coerente, enquanto digitar "PETR" e ver um
+  // ranking de um item só é ruído.
+  const byType = useMemo(
+    () => (market.data?.rows ?? []).filter((row) => (type === 'ALL' ? true : row.type === type)),
+    [market.data, type],
+  );
+
   const rows = useMemo(() => {
     const needle = term.trim().toLowerCase();
-    const source = market.data?.rows ?? [];
 
-    return source
-      .filter((row) => (type === 'ALL' ? true : row.type === type))
+    return byType
       .filter(
         (row) =>
           needle === '' ||
@@ -107,7 +112,7 @@ export function MarketPage() {
           row.name.toLowerCase().includes(needle),
       )
       .sort((a, b) => compare(a, b, sort.key, sort.asc));
-  }, [market.data, term, type, sort]);
+  }, [byType, term, sort]);
 
   function handleSort(key: SortKey) {
     setSort((current) =>
@@ -160,6 +165,10 @@ export function MarketPage() {
             </p>
           </div>
         </div>
+      ) : null}
+
+      {term.trim() === '' && !market.isPending && !market.isError ? (
+        <MarketHighlights rows={byType} />
       ) : null}
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -230,7 +239,7 @@ export function MarketPage() {
                   sort={sort}
                   onSort={handleSort}
                 />
-                <th className="px-4 py-2 text-right font-medium">Volume</th>
+                <th className="px-4 py-2 text-right font-medium">Volume financeiro</th>
               </tr>
             </thead>
             <tbody>
@@ -267,7 +276,7 @@ export function MarketPage() {
                     {row.changePct === null ? '—' : formatPercent(row.changePct / 100)}
                   </td>
                   <td className="tabular px-4 py-2 text-right whitespace-nowrap text-muted-foreground">
-                    {row.volume === null ? '—' : compactNumber.format(row.volume)}
+                    {row.financialVolume === null ? '—' : formatCompactBRL(row.financialVolume)}
                   </td>
                 </tr>
               ))}
