@@ -654,6 +654,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      delete_my_account: { Args: never; Returns: undefined }
       execute_order_tx: {
         Args: {
           p_executed_price: number
@@ -693,7 +694,20 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      export_my_data: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      job_health: {
+        Args: never
+        Returns: {
+          job: string
+          last_detail: string
+          last_ok: string
+          last_run: string
+          last_status: string
+          minutes_since_ok: number
+          minutes_since_run: number
+        }[]
+      }
       open_season: {
         Args: { p_initial_cash?: number; p_name: string }
         Returns: {

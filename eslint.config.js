@@ -70,7 +70,17 @@ export default tseslint.config(
   },
 
   {
-    files: ['**/*.js'],
+    // Scripts de terminal: `console.log` é o mecanismo de saída deles, não um
+    // resquício de depuração esquecido.
+    files: ['scripts/**'],
+    rules: { 'no-console': 'off' },
+  },
+
+  {
+    // Configuração e scripts operacionais: JavaScript puro, fora de qualquer
+    // tsconfig. Sem desligar o lint type-aware aqui, o ESLint reclama que o
+    // arquivo não pertence a nenhum projeto.
+    files: ['**/*.js', '**/*.mjs'],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: {
       globals: globals.node,

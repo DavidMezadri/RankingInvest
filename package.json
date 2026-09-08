@@ -27,7 +27,8 @@
     "db:push": "supabase db push && npm run db:types",
     "db:diff": "supabase db diff -f",
     "db:types": "supabase gen types typescript --linked --schema public > packages/core/src/db.types.ts",
-    "fn:deploy": "supabase functions deploy"
+    "fn:deploy": "supabase functions deploy",
+    "audit:rls": "node scripts/rls-audit.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

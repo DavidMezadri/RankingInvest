@@ -31,6 +31,9 @@ const RankingPage = lazy(() =>
 const AdminPage = lazy(() =>
   import('@/routes/AdminPage').then((module) => ({ default: module.AdminPage })),
 );
+const AccountPage = lazy(() =>
+  import('@/routes/AccountPage').then((module) => ({ default: module.AccountPage })),
+);
 const TermsPage = lazy(() =>
   import('@/routes/TermsPage').then((module) => ({ default: module.TermsPage })),
 );
@@ -108,6 +111,17 @@ export default function App() {
           <RequireAuth>
             <Suspense fallback={<RouteFallback />}>
               <AdminPage />
+            </Suspense>
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/app/conta"
+        element={
+          <RequireAuth>
+            <Suspense fallback={<RouteFallback />}>
+              <AccountPage />
             </Suspense>
           </RequireAuth>
         }

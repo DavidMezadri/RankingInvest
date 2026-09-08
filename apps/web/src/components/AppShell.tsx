@@ -133,7 +133,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             Simulação com fins educacionais. Cotações com atraso. Não constitui recomendação de
             investimento.
           </p>
-          <p>
+          <p className="flex gap-3">
+            <Link to="/app/conta" className="underline underline-offset-2 hover:text-foreground">
+              Sua conta
+            </Link>
             <Link to="/termos" className="underline underline-offset-2 hover:text-foreground">
               Termos e privacidade
             </Link>
