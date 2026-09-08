@@ -1,4 +1,4 @@
-import { money, type Enums, type Tables } from '@m8invest/core';
+import { money, sumMoney, type Enums, type Tables } from '@m8invest/core';
 
 import { getSupabaseClient } from '@/lib/supabase';
 
@@ -76,6 +76,21 @@ export type AssetDetail = {
   asset: Tables<'assets'>;
   quote: Tables<'quotes'> | null;
   candles: Tables<'daily_candles'>[];
+  events: Tables<'corporate_events'>[];
+  /**
+   * Dividend yield dos últimos 12 meses: soma dos proventos por ação dividida
+   * pelo preço atual.
+   *
+   * Calculado a partir dos dados oficiais da B3, e não copiado do indicador
+   * de um terceiro — assim o número na tela é reproduzível a partir da tabela
+   * de eventos que está logo abaixo dele.
+   *
+   * `null` sem cotação ou sem provento no período: DY de zero afirmaria que o
+   * ativo não paga, quando pode ser que apenas não tenhamos o dado.
+   */
+  dividendYield12m: number | null;
+  /** Soma dos proventos por ação nos últimos 12 meses. */
+  dividends12m: number;
 };
 
 export async function fetchAsset(ticker: string): Promise<AssetDetail | null> {
@@ -90,16 +105,46 @@ export async function fetchAsset(ticker: string): Promise<AssetDetail | null> {
   if (assetError) throw new Error(assetError.message);
   if (!asset) return null;
 
-  const [quote, candles] = await Promise.all([
+  const [quote, candles, events] = await Promise.all([
     supabase.from('quotes').select('*').eq('ticker', ticker).maybeSingle(),
     supabase
       .from('daily_candles')
       .select('*')
       .eq('ticker', ticker)
       .order('date', { ascending: true }),
+    supabase
+      .from('corporate_events')
+      .select('*')
+      .eq('ticker', ticker)
+      .order('ex_date', { ascending: false })
+      .limit(40),
   ]);
 
   if (candles.error) throw new Error(candles.error.message);
+  if (events.error) throw new Error(events.error.message);
 
-  return { asset, quote: quote.data ?? null, candles: candles.data ?? [] };
+  const rows = events.data ?? [];
+  const oneYearAgo = new Date(Date.now() - 365 * 86_400_000).toISOString().slice(0, 10);
+
+  const dividends12m = sumMoney(
+    rows
+      .filter(
+        (row) =>
+          (row.kind === 'DIVIDEND' || row.kind === 'JCP') &&
+          row.rate_per_share !== null &&
+          row.ex_date >= oneYearAgo,
+      )
+      .map((row) => row.rate_per_share ?? 0),
+  );
+
+  const price = quote.data?.price ?? null;
+
+  return {
+    asset,
+    quote: quote.data ?? null,
+    candles: candles.data ?? [],
+    events: rows,
+    dividends12m,
+    dividendYield12m: price !== null && price > 0 && dividends12m > 0 ? dividends12m / price : null,
+  };
 }

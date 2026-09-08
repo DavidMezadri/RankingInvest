@@ -19,6 +19,8 @@ const LEDGER_LABEL: Record<Enums<'ledger_kind'>, string> = {
   FI_APPLY: 'Aplicação',
   FI_REDEEM: 'Resgate',
   FI_INTEREST: 'Rendimento',
+  DIVIDEND: 'Dividendo',
+  JCP: 'JCP',
 };
 
 function Metric({

@@ -47,6 +47,59 @@ export type Database = {
         }
         Relationships: []
       }
+      corporate_events: {
+        Row: {
+          approved_on: string | null
+          created_at: string
+          ex_date: string
+          factor: number | null
+          id: string
+          isin_code: string | null
+          kind: Database["public"]["Enums"]["event_kind"]
+          payment_date: string | null
+          rate_per_share: number | null
+          related_to: string | null
+          source: string
+          ticker: string
+        }
+        Insert: {
+          approved_on?: string | null
+          created_at?: string
+          ex_date: string
+          factor?: number | null
+          id?: string
+          isin_code?: string | null
+          kind: Database["public"]["Enums"]["event_kind"]
+          payment_date?: string | null
+          rate_per_share?: number | null
+          related_to?: string | null
+          source?: string
+          ticker: string
+        }
+        Update: {
+          approved_on?: string | null
+          created_at?: string
+          ex_date?: string
+          factor?: number | null
+          id?: string
+          isin_code?: string | null
+          kind?: Database["public"]["Enums"]["event_kind"]
+          payment_date?: string | null
+          rate_per_share?: number | null
+          related_to?: string | null
+          source?: string
+          ticker?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corporate_events_ticker_fkey"
+            columns: ["ticker"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["ticker"]
+          },
+        ]
+      }
       daily_candles: {
         Row: {
           close: number
@@ -82,6 +135,60 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "assets"
             referencedColumns: ["ticker"]
+          },
+        ]
+      }
+      dividend_entitlements: {
+        Row: {
+          event_id: string
+          gross_amount: number
+          id: string
+          net_amount: number
+          paid_at: string | null
+          portfolio_id: string
+          provisioned_at: string
+          quantity: number
+          status: Database["public"]["Enums"]["entitlement_status"]
+          tax_amount: number
+        }
+        Insert: {
+          event_id: string
+          gross_amount: number
+          id?: string
+          net_amount: number
+          paid_at?: string | null
+          portfolio_id: string
+          provisioned_at?: string
+          quantity: number
+          status?: Database["public"]["Enums"]["entitlement_status"]
+          tax_amount?: number
+        }
+        Update: {
+          event_id?: string
+          gross_amount?: number
+          id?: string
+          net_amount?: number
+          paid_at?: string | null
+          portfolio_id?: string
+          provisioned_at?: string
+          quantity?: number
+          status?: Database["public"]["Enums"]["entitlement_status"]
+          tax_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dividend_entitlements_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "corporate_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dividend_entitlements_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -188,6 +295,7 @@ export type Database = {
         Row: {
           amount: number
           description: string
+          entitlement_id: string | null
           id: string
           investment_id: string | null
           kind: Database["public"]["Enums"]["ledger_kind"]
@@ -198,6 +306,7 @@ export type Database = {
         Insert: {
           amount: number
           description: string
+          entitlement_id?: string | null
           id?: string
           investment_id?: string | null
           kind: Database["public"]["Enums"]["ledger_kind"]
@@ -208,6 +317,7 @@ export type Database = {
         Update: {
           amount?: number
           description?: string
+          entitlement_id?: string | null
           id?: string
           investment_id?: string | null
           kind?: Database["public"]["Enums"]["ledger_kind"]
@@ -216,6 +326,13 @@ export type Database = {
           portfolio_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ledger_entries_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "dividend_entitlements"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ledger_entries_investment_id_fkey"
             columns: ["investment_id"]
@@ -726,6 +843,27 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      pay_dividend_tx: {
+        Args: { p_entitlement_id: string }
+        Returns: {
+          event_id: string
+          gross_amount: number
+          id: string
+          net_amount: number
+          paid_at: string | null
+          portfolio_id: string
+          provisioned_at: string
+          quantity: number
+          status: Database["public"]["Enums"]["entitlement_status"]
+          tax_amount: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "dividend_entitlements"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       platform_setting: { Args: { p_key: string }; Returns: Json }
       redeem_fixed_income_tx: {
         Args: {
@@ -757,10 +895,13 @@ export type Database = {
         }
       }
       trigger_close_day: { Args: never; Returns: number }
+      trigger_sync_events: { Args: never; Returns: number }
       trigger_sync_quotes: { Args: never; Returns: number }
     }
     Enums: {
       asset_type: "STOCK" | "FII" | "UNIT" | "BDR"
+      entitlement_status: "PROVISIONED" | "PAID"
+      event_kind: "DIVIDEND" | "JCP" | "SPLIT" | "SUBSCRIPTION"
       fi_kind: "CDB" | "LCI" | "LCA" | "TESOURO"
       fi_liquidity: "DAILY" | "AT_MATURITY"
       ledger_kind:
@@ -772,6 +913,8 @@ export type Database = {
         | "FI_APPLY"
         | "FI_REDEEM"
         | "FI_INTEREST"
+        | "DIVIDEND"
+        | "JCP"
       order_side: "BUY" | "SELL"
       order_status: "FILLED" | "REJECTED"
     }
@@ -902,6 +1045,8 @@ export const Constants = {
   public: {
     Enums: {
       asset_type: ["STOCK", "FII", "UNIT", "BDR"],
+      entitlement_status: ["PROVISIONED", "PAID"],
+      event_kind: ["DIVIDEND", "JCP", "SPLIT", "SUBSCRIPTION"],
       fi_kind: ["CDB", "LCI", "LCA", "TESOURO"],
       fi_liquidity: ["DAILY", "AT_MATURITY"],
       ledger_kind: [
@@ -913,6 +1058,8 @@ export const Constants = {
         "FI_APPLY",
         "FI_REDEEM",
         "FI_INTEREST",
+        "DIVIDEND",
+        "JCP",
       ],
       order_side: ["BUY", "SELL"],
       order_status: ["FILLED", "REJECTED"],

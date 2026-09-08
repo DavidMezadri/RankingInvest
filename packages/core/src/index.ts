@@ -3,6 +3,7 @@ export * from './datetime.ts';
 export * from './fees.ts';
 export * from './fixed-income.ts';
 export * from './money.ts';
+export * from './proventos.ts';
 
 // Gerado por `npm run db:types` a partir do schema remoto. Reexportado de
 // forma explícita, e não com `export *`, para a API do pacote continuar

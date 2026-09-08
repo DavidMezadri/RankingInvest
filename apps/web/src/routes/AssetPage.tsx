@@ -1,4 +1,4 @@
-import { formatBRL, formatDateTime, formatPercent, type Enums } from '@m8invest/core';
+import { formatBRL, formatDate, formatDateTime, formatPercent, type Enums } from '@m8invest/core';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Link, useParams } from 'react-router';
@@ -14,6 +14,13 @@ const TYPE_LABEL: Record<Enums<'asset_type'>, string> = {
   FII: 'Fundo Imobiliário',
   UNIT: 'Unit',
   BDR: 'BDR',
+};
+
+const EVENT_LABEL: Record<Enums<'event_kind'>, string> = {
+  DIVIDEND: 'Dividendo',
+  JCP: 'JCP',
+  SPLIT: 'Desdobramento',
+  SUBSCRIPTION: 'Subscrição',
 };
 
 const compactNumber = new Intl.NumberFormat('pt-BR', { notation: 'compact' });
@@ -119,6 +126,69 @@ export function AssetPage() {
               <CandleChart candles={detail.candles} />
             )}
           </section>
+
+          {detail.events.length > 0 ? (
+            <section className="mb-6 rounded-lg border border-border bg-card p-4">
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="text-xs font-medium text-muted-foreground">Proventos</h2>
+                {detail.dividendYield12m !== null ? (
+                  <p className="text-xs text-muted-foreground">
+                    <span className="tabular font-medium text-gain">
+                      {formatPercent(detail.dividendYield12m)}
+                    </span>{' '}
+                    nos últimos 12 meses ({formatBRL(detail.dividends12m)} por{' '}
+                    {detail.asset.ticker.endsWith('11') ? 'cota' : 'ação'})
+                  </p>
+                ) : null}
+              </div>
+
+              {/* O DY é calculado a partir da tabela logo abaixo, com dados
+                  oficiais da B3 — não copiado do indicador de um terceiro.
+                  Quem duvidar do número pode somar as linhas e conferir. */}
+              <div className="max-h-72 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-card text-muted-foreground">
+                    <tr>
+                      <th className="py-1.5 text-left font-medium">Tipo</th>
+                      <th className="py-1.5 text-left font-medium">Data com</th>
+                      <th className="py-1.5 text-left font-medium">Pagamento</th>
+                      <th className="py-1.5 text-right font-medium">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detail.events.map((event) => (
+                      <tr key={event.id} className="border-t border-border">
+                        <td className="py-1.5">
+                          {EVENT_LABEL[event.kind]}
+                          {event.related_to ? (
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              {event.related_to}
+                            </span>
+                          ) : null}
+                        </td>
+                        <td className="tabular py-1.5 whitespace-nowrap text-muted-foreground">
+                          {formatDate(event.ex_date)}
+                        </td>
+                        <td className="tabular py-1.5 whitespace-nowrap text-muted-foreground">
+                          {event.payment_date ? formatDate(event.payment_date) : '—'}
+                        </td>
+                        <td className="tabular py-1.5 text-right whitespace-nowrap">
+                          {event.kind === 'SPLIT'
+                            ? `${String(event.factor ?? 0)}×`
+                            : formatBRL(event.rate_per_share ?? 0)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <p className="mt-3 text-xs text-muted-foreground">
+                Fonte: B3. Dividendo é isento de IR; JCP tem 15% retidos na fonte. Quem tiver a
+                posição na data com recebe o provento na data de pagamento.
+              </p>
+            </section>
+          ) : null}
 
           <section className="mb-6 rounded-lg border border-border bg-card p-4">
             <h2 className="mb-3 text-xs font-medium text-muted-foreground">Dados</h2>

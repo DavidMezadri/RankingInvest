@@ -424,3 +424,9 @@ verify_jwt = false
 # então rodar duas vezes no mesmo dia produz o mesmo estado. Idempotência
 # dispensa o segredo compartilhado com o cron.
 verify_jwt = false
+
+[functions.sync-events]
+# Chamada pelo pg_cron via pg_net, como sync-quotes e close-day. A escrita é
+# idempotente: upsert com chave natural nos eventos e unique (carteira,
+# evento) nos provisionamentos.
+verify_jwt = false
