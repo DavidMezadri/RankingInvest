@@ -7,6 +7,7 @@ import {
   countBusinessDays,
   quoteRedemption,
 } from '../../../packages/core/src/fixed-income.ts';
+import { corsJson, handlePreflight } from '../_shared/cors.ts';
 import { readMarketClock } from '../_shared/market-calendar.ts';
 
 /**
@@ -36,11 +37,11 @@ const REJECTION_MESSAGE: Record<string, string> = {
   INVALID_INPUT: 'Dados inválidos.',
 };
 
+// Delega ao helper para que TODA resposta leve CORS, inclusive as de erro:
+// sem os cabeçalhos, o navegador esconde o corpo e o usuário vê um erro
+// genérico em vez do motivo da rejeição.
 function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return corsJson(body, status);
 }
 
 function rejected(code: string, status = 422): Response {
@@ -88,6 +89,9 @@ async function loadHolidays(db: SupabaseClient): Promise<Set<string>> {
 }
 
 Deno.serve(async (request) => {
+  const preflight = handlePreflight(request);
+  if (preflight) return preflight;
+
   const url = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');

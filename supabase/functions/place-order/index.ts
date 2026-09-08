@@ -7,6 +7,7 @@ import {
   type OrderSide,
   type RejectionCode,
 } from '../../../packages/core/src/fees.ts';
+import { corsJson, handlePreflight } from '../_shared/cors.ts';
 import { getMarketStatus } from '../_shared/market-calendar.ts';
 
 /**
@@ -29,11 +30,11 @@ const MAX_ORDERS_PER_MINUTE = 30;
 
 type OrderRequest = { ticker: string; side: OrderSide; quantity: number };
 
+// Delega ao helper para que TODA resposta leve CORS, inclusive as de erro:
+// sem os cabeçalhos, o navegador esconde o corpo e o usuário vê um erro
+// genérico em vez do motivo da rejeição.
 function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return corsJson(body, status);
 }
 
 function rejected(code: RejectionCode, status = 422): Response {
@@ -88,6 +89,9 @@ async function logRejection(
 }
 
 Deno.serve(async (request) => {
+  const preflight = handlePreflight(request);
+  if (preflight) return preflight;
+
   const url = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
